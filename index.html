@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body>
+<title>ドップラーシフター入門</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a student lesson — night-sky hero band, then numbered sections on a soft cool page; each step = title → large screen → 操作 | なぜ？ */
+:root {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --sunk: #eef0f6;
+  --fg: #1a1f33;
+  --muted: #5b6480;
+  --line: #e1e4ee;
+  --accent: #3f5bd9;
+  --accent-soft: #e9edff;
+  --near: #2f6bff;      /* approaching = compressed waves = higher pitch */
+  --far: #e05a35;       /* receding = stretched waves = lower pitch */
+  --tip-soft: #fff4e0;
+  --tip: #b86a00;
+  --near-soft: #e9edff;
+  --far-soft: #fdebe4;
+  --shadow: 0 1px 2px rgba(26,31,51,.04), 0 6px 20px rgba(26,31,51,.06);
+  --f-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans SC", sans-serif;
+  --f-body: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Noto Sans SC", "PingFang SC", sans-serif;
+  --f-zh: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  /* hero band: night sky in both themes */
+  --sky-1: #0b1233; --sky-2: #1b2363; --sky-fg: #f2f4ff; --sky-muted: #b7bfe6;
+  /* mock Audition UI: always dark, like the real app */
+  --au-bg: #1d1d1f; --au-panel: #262628; --au-bar: #2f2f32; --au-line: #3c3c40; --au-text: #d6d6da; --au-dim: #8d8d94;
+  --au-wave: #3fd29a; --au-sel: rgba(255,255,255,.16); --au-hl: #ffcc33; --au-blue: #3d8bff;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1222; --surface: #161b2f; --sunk: #1c2238; --fg: #e8ebf6; --muted: #9aa3bf; --line: #283050;
+  --accent: #8ea2ff; --accent-soft: #1f2750; --near: #7aa4ff; --far: #ff8f6e; --tip-soft: #2e2615; --tip: #f0b45a;
+  --near-soft: #1f2750; --far-soft: #3a2119; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1222; --surface: #161b2f; --sunk: #1c2238; --fg: #e8ebf6; --muted: #9aa3bf; --line: #283050;
+  --accent: #8ea2ff; --accent-soft: #1f2750; --near: #7aa4ff; --far: #ff8f6e; --tip-soft: #2e2615; --tip: #f0b45a;
+  --near-soft: #1f2750; --far-soft: #3a2119; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25); color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.85; -webkit-font-smoothing: antialiased; font-feature-settings: "palt" 1 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface) }
+.wrap { max-width: 1100px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+b, strong { font-weight: 700 }
+
+/* language */
+[data-lang="ja"] .zh { display: none }
+[data-lang="zh"] .ja { display: none }
+.zh { font-family: var(--f-zh) }
+[data-lang="both"] .t > .zh { display: block; color: var(--muted); font-size: .9em; margin-top: .3em; line-height: 1.75 }
+[data-lang="both"] .i > .zh::before { content: " / " }
+[data-lang="both"] .i > .zh { color: var(--muted) }
+[data-lang="both"] .bar nav .zh { display: none }
+
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); border-bottom: 1px solid var(--line) }
+.bar .wrap { display: flex; align-items: center; gap: 16px; padding-block: 10px; flex-wrap: wrap }
+.bar .brand { font-family: var(--f-display); font-weight: 700; font-size: 16px; margin-right: auto; display: inline-flex; gap: 8px; align-items: center }
+.bar .brand::before { content: ""; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, var(--accent) 0 3px, transparent 4px), repeating-radial-gradient(circle at 30% 50%, transparent 0 4px, color-mix(in srgb, var(--accent) 55%, transparent) 4px 5px) }
+.bar nav { display: flex; gap: 4px; flex-wrap: wrap; font-size: 14px }
+.bar nav a { color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 999px }
+.bar nav a:hover { color: var(--fg); background: var(--sunk) }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--sunk) }
+.seg button { font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--muted); padding: 4px 12px; border-radius: 999px; cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); font-weight: 500 }
+button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+/* hero: night sky */
+header.hero { --fg: var(--sky-fg); --muted: var(--sky-muted); --line: rgba(255,255,255,.14); --surface: transparent; --near: #7fb0ff; --far: #ff9b7a;
+  background: radial-gradient(120% 140% at 85% 20%, var(--sky-2) 0%, var(--sky-1) 60%); color: var(--sky-fg); position: relative; overflow: hidden }
+header.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(1px 1px at 12% 22%, #fff 50%, transparent), radial-gradient(1px 1px at 32% 78%, #fff 50%, transparent), radial-gradient(1.5px 1.5px at 58% 14%, #fff 50%, transparent), radial-gradient(1px 1px at 76% 64%, #fff 50%, transparent), radial-gradient(1px 1px at 90% 30%, #fff 50%, transparent), radial-gradient(1px 1px at 44% 46%, #fff 50%, transparent) }
+header.hero .wrap { padding-block: 64px 56px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: center; position: relative; z-index: 1 }
+.eyebrow { display: inline-block; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; color: var(--sky-muted); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; padding: 3px 12px }
+.nw { white-space: nowrap }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(32px, 4.4vw, 54px); line-height: 1.2; margin: 18px 0 16px; letter-spacing: .01em; text-wrap: balance }
+h1 .zh { font-family: var(--f-zh); font-weight: 700 }
+[data-lang="both"] h1.t > .zh { font-size: .42em; font-weight: 500; line-height: 1.5; color: var(--sky-muted); margin-top: .5em }
+.lead { color: #dfe3fb; max-width: 34em; margin: 0; font-size: 16.5px }
+header.hero .lead b { color: #fff }
+[data-lang="both"] header.hero .t > .zh { color: var(--sky-muted) }
+header.hero .cv { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12) }
+header.hero .legend { color: var(--sky-muted) }
+
+/* sections */
+section { padding-block: 72px 24px }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 3.4vw, 34px); line-height: 1.3; margin: 0 0 10px; text-wrap: balance; display: flex; flex-direction: column; gap: 2px }
+h2 .zh { font-family: var(--f-zh) }
+[data-lang="both"] h2.t > .zh { font-size: .52em; font-weight: 500; color: var(--muted) }
+h2::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--near), var(--far)); margin-bottom: 14px }
+h3 { font-family: var(--f-display); font-weight: 700; font-size: 19px; margin: 0; line-height: 1.45; text-wrap: balance }
+h3 .zh { font-family: var(--f-zh); font-weight: 500 }
+.sub { color: var(--muted); margin: 0 0 28px; max-width: 46em; font-size: 16px }
+.sub b { color: var(--fg) }
+.pitch { display: flex; gap: 6px; align-items: baseline; font-family: var(--f-mono); font-size: 13px }
+.chip { display: inline-block; font-family: var(--f-mono); font-size: 12px; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--sunk); white-space: nowrap }
+.near { color: var(--near) } .far { color: var(--far) }
+
+/* cards */
+.snd { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; min-width: 0; box-shadow: var(--shadow) }
+.snd h3 { font-size: 17px }
+
+/* intro */
+.intro { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 40px }
+.intro ol.clean { padding-left: 1.4em }
+ul.clean, ol.clean { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; font-size: 15px }
+ul.clean li::marker, ol.clean li::marker { color: var(--accent); font-weight: 700 }
+.gloss-h { margin-bottom: 12px }
+table.gloss td:first-child { white-space: nowrap; width: 1%; padding-right: 28px }
+.zh-only { display: none } [data-lang="zh"] .zh-only, [data-lang="both"] .zh-only { display: block }
+
+/* about Audition */
+.about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px }
+.uses { display: flex; flex-wrap: wrap; gap: 8px }
+.uses span.u { background: var(--sunk); border-radius: 999px; padding: 4px 12px; font-size: 14px }
+.modes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px }
+.mode { border-radius: 12px; padding: 14px 16px; background: var(--sunk) }
+.mode .k { font-family: var(--f-display); font-weight: 700; font-size: 17px }
+.mode .k small { font-family: var(--f-body); font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 6px }
+.mode.w { background: var(--accent-soft) }
+.mode.m { background: var(--far-soft) }
+.mode p { margin: 6px 0 0; font-size: 14px }
+.map { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; align-items: start }
+.map .real { border-radius: 12px; overflow: hidden; background: #111 }
+.map .real .box span { font-size: 13px; padding: 1px 8px }
+.map ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 15px }
+.map ol li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start }
+.map ol li > span > b { display: block; font-family: var(--f-display) }
+.map ol li .n { width: 26px; height: 26px; border-radius: 50%; background: #ffcc33; color: #111; font-weight: 700; display: grid; place-items: center; font-size: 13px; margin-top: 2px }
+
+/* theory */
+.theory { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 32px; align-items: start }
+.cv { width: 100%; aspect-ratio: 16 / 9; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; display: block }
+.formula { font-family: var(--f-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; overflow-x: auto }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 10px }
+.legend b { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px }
+
+/* sound cards */
+.sounds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.snd.wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%) }
+.snd .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.snd p { margin: 0; font-size: 14px; color: var(--muted) }
+.play { font: inherit; font-size: 13px; display: inline-flex; gap: 7px; align-items: center; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 14px; cursor: pointer; transition: border-color .15s, background .15s }
+.play:hover { border-color: var(--accent) }
+.play.on { background: var(--accent); color: #fff; border-color: var(--accent) }
+.play.after { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent) }
+.play.after.on { color: #fff }
+.play svg { width: 11px; height: 11px; fill: currentColor }
+.file { font-family: var(--f-mono); font-size: 12px; color: var(--muted); word-break: break-all }
+
+/* video player */
+.player { background: #0f0f12; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px rgba(11,18,51,.25) }
+.stage { position: relative; width: 100%; aspect-ratio: 880 / 540; overflow: hidden }
+.stage > .mock { position: absolute; left: 0; top: 0; transform-origin: 0 0 }
+.cap { background: #121216; color: #f1f1f4; padding: 18px 22px; min-height: 116px; display: grid; gap: 4px; border-top: 1px solid #222 }
+.cap .n { font-family: var(--f-mono); font-size: 12px; color: var(--au-hl) }
+.cap .h { font-family: var(--f-display); font-weight: 700; font-size: 18px }
+.cap .d { font-size: 14px; color: #c8c8d0 }
+[data-lang="both"] .cap .t > .zh { color: #9b9ba6 }
+.ctrl { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #18181c; color: #ddd; flex-wrap: wrap }
+.ctrl button { font: inherit; font-size: 13px; background: #2a2a30; color: #eee; border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer }
+.ctrl button:hover { background: #3a3a42 }
+.ctrl .big { background: var(--au-hl); color: #111; font-weight: 700 }
+.prog { flex: 1 1 200px; display: flex; gap: 3px; min-width: 0 }
+.prog button { flex: 1; height: 6px; padding: 0; border-radius: 3px; background: #34343b; position: relative; overflow: hidden }
+.prog button.done { background: #8d8d94 }
+.prog button.p2 { background: #4a3a36 }
+.prog button.p2.done { background: #a07f74 }
+.prog button i { position: absolute; inset: 0 auto 0 0; background: var(--au-hl); width: 0 }
+.ctrl label { font-size: 12px; color: #aaa; display: inline-flex; gap: 6px; align-items: center }
+.uiseg { margin: 0 0 18px }
+.ctrl .uiseg { margin: 0; background: #2a2a30; border-color: #3a3a40 }
+.ctrl .uiseg button { color: #bbb; background: transparent }
+.ctrl .uiseg button[aria-pressed="true"] { background: #eee; color: #111 }
+
+/* steps: title → large screen → 操作 | なぜ？ */
+.steps { display: grid; gap: 28px }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow) }
+.step .head { display: flex; gap: 14px; align-items: center; padding: 18px 22px; flex-wrap: wrap }
+.step .num { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-family: var(--f-display); font-weight: 700; font-size: 17px }
+.step .head h3 { font-size: 20px; flex: 1 1 260px }
+.step .shot { position: relative; background: var(--au-bg); aspect-ratio: 880 / 540; overflow: hidden; margin: 0 22px; border-radius: 12px; max-width: calc(100% - 44px) }
+.step .shot > .mock { position: absolute; left: 0; top: 0; transform-origin: 0 0 }
+.step .shot.realshot { background: #111; max-height: 640px; width: auto; margin-inline: auto }
+.step .body { padding: 20px 22px 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start }
+.step .body .col { display: grid; gap: 14px; min-width: 0 }
+.blk { display: grid; gap: 4px; font-size: 15px }
+.blk .lab { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--muted) }
+.blk.ui .mono { font-size: 13.5px; font-weight: 500; color: var(--fg) }
+.blk.why { background: var(--accent-soft); border-radius: 14px; padding: 16px 18px }
+.blk.why .lab { color: var(--accent) }
+.blk.ext { margin: 0 22px 24px; border: 1.5px solid var(--line); border-radius: 14px; padding: 16px 18px; font-size: 14.5px; gap: 10px }
+.blk.ext .lab { font-size: 13px; color: var(--fg) }
+.blk.ext .tw { overflow-x: auto }
+.blk.ext table { font-size: 14px }
+.blk.ext td, .blk.ext th { padding: 9px 12px }
+.blk.ext td:first-child { white-space: nowrap; font-weight: 700; color: var(--muted) }
+.blk.ext .yl { display: inline-block; width: 22px; height: 3px; background: #e8c547; vertical-align: middle; border-radius: 2px; margin-right: 4px }
+.blk.ext p { margin: 10px 0 0 }
+.blk.ext .real.nav { margin: 26px 0 30px; border-radius: 6px }
+.blk.ext kbd { font-family: var(--f-mono); font-size: 13px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 8px; background: var(--sunk); white-space: nowrap }
+[data-lang="both"] .blk.ext .t > .zh { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line) }
+.blk.tip { background: var(--tip-soft); border-radius: 12px; padding: 12px 14px; font-size: 14px }
+.blk.tip::before { content: "ヒント"; font-size: 12px; font-weight: 700; color: var(--tip) }
+[data-lang="zh"] .blk.tip::before { content: "提示" }
+.keys { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 2px }
+.keys kbd { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 7px; background: var(--sunk) }
+.uialt { font-family: var(--f-mono); font-size: 12px; color: var(--muted) }
+.divider { background: linear-gradient(120deg, var(--sky-1), var(--sky-2)); color: var(--sky-fg); border-radius: 20px; padding: 28px 28px; display: grid; gap: 8px; margin-top: 20px }
+.divider h3 { font-size: 24px }
+.divider p { margin: 0; max-width: 52em; color: #dfe3fb }
+[data-lang="both"] .divider .t > .zh { color: var(--sky-muted) }
+.real { position: relative }
+.real img { display: block; width: 100%; height: auto }
+.real.sub { max-width: 360px; margin: 8px 0 10px 22px; border-radius: 8px }
+.real.sub img { border-radius: 8px }
+.subcap { margin: 14px 0 0 }
+.real.sub.wide { max-width: 520px; margin-left: 0 }
+.realshot .real img { max-height: 640px; width: auto; max-width: 100%; margin: 0 auto }
+.real .bx { position: absolute; inset: 0 }
+.real .box { position: absolute; border: 3px solid #ffcc33; border-radius: 6px; box-shadow: 0 0 0 4px rgba(255,204,51,.25); opacity: 0; transition: opacity .45s }
+.real.show .box { opacity: 1 }
+.real .box span { position: absolute; background: #ffcc33; color: #111; font: 700 12px/1.4 var(--f-body); padding: 2px 8px; border-radius: 6px; white-space: nowrap }
+.real .box.p-r span { left: 100%; top: 50%; transform: translate(6px, -50%) }
+.real .box.p-l span { right: 100%; top: 50%; transform: translate(-6px, -50%) }
+.real .box.p-t span { bottom: 100%; left: 0; transform: translateY(-5px) }
+.real .box.p-tc span { bottom: 100%; left: 50%; transform: translate(-50%, -5px) }
+.real .box.p-tr span { bottom: 100%; right: 0; transform: translateY(-5px) }
+.real .box.p-b span { top: 100%; left: 0; transform: translateY(5px) }
+.real .box.p-in span { top: 6px; left: 6px }
+.real .box.p-ir span { right: 6px; top: 50%; transform: translateY(-50%) }
+.realv { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #111 }
+.badge { position: absolute; z-index: 13; right: 10px; top: 10px; font-size: 11px; line-height: 1.5; background: rgba(0,0,0,.7); color: #ddd; padding: 2px 10px; border-radius: 999px }
+.badge.real { background: #ffcc33; color: #111; font-weight: 700 }
+[data-lang="both"] .badge .i > .zh { color: inherit }
+.practice { background: var(--surface); border: 2px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: 20px; padding: 24px; display: grid; gap: 10px; margin-top: 8px }
+.practice .tag { justify-self: start; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 12px }
+.practice h3 { font-size: 22px }
+.practice p { margin: 0 0 6px; max-width: 52em }
+.practice .tw { box-shadow: none }
+.progress { display: inline-flex; gap: 10px; align-items: center; font-size: 14px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; margin: 0 12px 18px 0 }
+.progress b { font-family: var(--f-mono); color: var(--accent); font-size: 15px }
+label.done { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; transition: all .15s }
+label.done input { accent-color: var(--accent) }
+.step.isdone .num { background: #2e9e6b }
+.step.isdone label.done { color: #2e9e6b; border-color: #2e9e6b; background: color-mix(in srgb, #2e9e6b 10%, transparent) }
+
+/* tables */
+.tw { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow) }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: 12px; letter-spacing: .04em; color: var(--muted); font-weight: 700; white-space: nowrap; background: var(--sunk) }
+tr:last-child td { border-bottom: 0 }
+td.num, th.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+td code, .mono { font-family: var(--f-mono); font-size: 13px }
+.cols2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px }
+.note { font-size: 13px; color: var(--muted); margin-top: 10px }
+.narr-btn { display: inline-flex; align-items: center; gap: 8px; margin: 2px 0 18px; padding: 8px 16px 8px 12px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--accent-soft); color: var(--accent); font: 700 14px/1.2 var(--f-body); cursor: pointer }
+.narr-btn .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px }
+.narr-btn.on .ic { animation: narrPulse 1.2s ease-in-out infinite }
+@keyframes narrPulse { 50% { box-shadow: 0 0 0 6px var(--accent-soft) } }
+.dl-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; font: 700 14.5px/1.3 var(--f-body); cursor: pointer; margin-top: 4px }
+.dl-btn[disabled] { opacity: .6; cursor: progress }
+.dl-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
+a.dl-btn { text-decoration: none }
+.dl-btn.dl-sub { background: transparent; color: var(--accent); border: 1.5px solid var(--accent) }
+.dl-msg { display: block; font-size: 13px; color: var(--muted); margin-top: 6px }
+.credit { margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--line); line-height: 1.9; color: var(--fg); font-size: 13.5px }
+.credit .nm { font-family: var(--f-display); font-weight: 700; letter-spacing: .14em; font-size: 15px }
+footer { margin-top: 72px; padding-block: 28px 64px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line) }
+
+/* ---------- mock Audition UI (880×540 design px) ---------- */
+.mock { width: 880px; height: 540px; background: var(--au-bg); color: var(--au-text); font: 12px/1.3 -apple-system, "Segoe UI", "Hiragino Sans", sans-serif; position: relative; user-select: none }
+.mock .tb { height: 26px; background: #141416; display: flex; align-items: center; gap: 8px; padding: 0 10px; color: var(--au-dim); font-size: 11px }
+.mock .tb i { width: 10px; height: 10px; border-radius: 50%; background: #444 }
+.mock .mb { height: 26px; background: var(--au-bar); display: flex; gap: 2px; padding: 0 6px; align-items: stretch; border-bottom: 1px solid var(--au-line) }
+.mock .mb span { padding: 0 9px; display: flex; align-items: center }
+.mock .mb span.open { background: var(--au-blue); color: #fff }
+.mock .ws { position: absolute; top: 52px; left: 0; right: 0; bottom: 30px; display: grid; grid-template-columns: 170px 1fr; gap: 3px; padding: 3px }
+.mock .pn { background: var(--au-panel); border: 1px solid var(--au-line); position: relative; overflow: hidden }
+.mock .ph { height: 22px; display: flex; align-items: center; gap: 12px; padding: 0 8px; border-bottom: 1px solid var(--au-line); color: var(--au-dim); font-size: 11px }
+.mock .ph b { color: var(--au-text); font-weight: 600 }
+.mock .ph .tab { padding: 3px 8px; border-radius: 3px }
+.mock .ph .tab.on { background: #3a3a3f; color: #fff }
+.mock .files div { padding: 4px 8px; font-size: 11px; color: var(--au-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.mock .files div.cur { color: #fff; background: #34343a }
+.mock canvas.wv { position: absolute; left: 0; top: 44px; width: 100%; height: calc(100% - 44px) }
+.mock .ruler { position: absolute; top: 22px; left: 0; right: 0; height: 22px; border-bottom: 1px solid var(--au-line); font: 10px var(--f-mono); color: var(--au-dim); display: flex; justify-content: space-between; padding: 4px 24px 0 30px }
+.mock .chl { position: absolute; left: 6px; font: 10px var(--f-mono); color: var(--au-dim); z-index: 2 }
+.mock .tr { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; background: var(--au-bar); border-top: 1px solid var(--au-line); display: flex; align-items: center; gap: 14px; padding: 0 12px }
+.mock .tr .time { font: 15px var(--f-mono); color: #5aa9ff }
+.mock .tr span { color: var(--au-dim); font-size: 13px }
+.mock .tr .pl.on { color: var(--au-wave) }
+/* menus */
+.mock .menu { position: absolute; background: #2b2b2f; border: 1px solid #4a4a50; box-shadow: 0 8px 24px rgba(0,0,0,.5); padding: 4px 0; min-width: 210px; z-index: 5 }
+.mock .menu div { padding: 4px 22px 4px 14px; display: flex; justify-content: space-between; gap: 24px; white-space: nowrap }
+.mock .menu div em { font-style: normal; color: var(--au-dim) }
+.mock .menu div.hr { height: 1px; background: #444; padding: 0; margin: 4px 0 }
+.mock .menu div.on { background: var(--au-blue); color: #fff }
+.mock .menu div.on em { color: #dfe9ff }
+/* dialog */
+.mock .dlg { position: absolute; left: 300px; top: 66px; width: 520px; height: 420px; background: #2a2a2e; border: 1px solid #55555c; box-shadow: 0 16px 40px rgba(0,0,0,.6); z-index: 6 }
+.mock .dlg .dt { height: 26px; background: #38383d; display: flex; align-items: center; padding: 0 10px; font-weight: 600 }
+.mock .dlg .pr { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3d3d42 }
+.mock .sel { background: #1c1c1f; border: 1px solid #4b4b52; padding: 3px 8px; border-radius: 3px; min-width: 120px; display: flex; justify-content: space-between; gap: 10px }
+.mock .dlg .bd { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 10px }
+.mock .graph { background: #19191c; border: 1px solid #44444a; height: 200px; position: relative }
+.mock .graph svg { width: 100%; height: 100% }
+.mock .prm { display: grid; gap: 7px }
+.mock .prm .r { display: grid; grid-template-columns: 118px 1fr 58px; gap: 6px; align-items: center; padding: 2px 4px; border-radius: 3px }
+.mock .prm .r .sl { height: 4px; background: #44444a; border-radius: 2px; position: relative }
+.mock .prm .r .sl i { position: absolute; top: -4px; width: 10px; height: 12px; background: #c9c9cf; border-radius: 2px; transform: translateX(-50%) }
+.mock .prm .r .v { font: 11px var(--f-mono); color: #5aa9ff; text-align: right }
+.mock .q { margin: 0 10px; border-top: 1px solid #3d3d42; padding-top: 8px; display: grid; gap: 6px }
+.mock .q .ck { display: flex; gap: 6px; align-items: center }
+.mock .q .ck i { width: 12px; height: 12px; border: 1px solid #77777e; display: inline-grid; place-items: center; font-style: normal; font-size: 10px; color: #fff; background: var(--au-blue) }
+.mock .dlg .ft { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-top: 1px solid #3d3d42 }
+.mock .ib { width: 26px; height: 22px; display: grid; place-items: center; border: 1px solid #4b4b52; border-radius: 3px; color: #ccc; font-size: 11px }
+.mock .ib.pw { color: var(--au-wave) }
+.mock .ib.on { background: var(--au-wave); color: #111 }
+.mock .btn { padding: 4px 14px; border: 1px solid #5a5a62; border-radius: 3px; background: #3a3a40 }
+.mock .btn.pri { background: var(--au-blue); border-color: var(--au-blue); color: #fff }
+.mock .hl { outline: 2px solid var(--au-hl); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(255,204,51,.18) }
+.mock .kbd { position: absolute; right: 18px; top: 66px; background: rgba(0,0,0,.75); color: #fff; font: 600 20px var(--f-mono); padding: 8px 14px; border-radius: 8px; z-index: 9; border: 1px solid #666 }
+.mock .save { position: absolute; left: 230px; top: 150px; width: 420px; background: #2a2a2e; border: 1px solid #55555c; box-shadow: 0 16px 40px rgba(0,0,0,.6); z-index: 6 }
+.mock .save .bd2 { padding: 12px; display: grid; gap: 8px }
+.mock .save .f { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: center }
+.mock .save .in { background: #1c1c1f; border: 1px solid #4b4b52; padding: 4px 8px; font-family: var(--f-mono); font-size: 11px }
+/* multitrack */
+.mock .mt { position: absolute; inset: 22px 0 0 0; display: none }
+.mock .mruler { position: relative; height: 22px; border-bottom: 1px solid var(--au-line); font: 10px var(--f-mono); color: var(--au-dim) }
+.mock .mruler span { position: absolute; top: 5px; transform: translateX(-50%) }
+.mock .knob { display: inline-block; margin-top: 8px; padding: 2px 7px; border: 1px solid #4b4b52; border-radius: 10px; font: 10px var(--f-mono); color: #5aa9ff; white-space: nowrap }
+.mock .mt .lane { position: relative; overflow: hidden }
+.mock .slot { position: absolute; top: 10px; height: 72px; border: 2px dashed transparent; border-radius: 3px }
+.mock .slot.hl { border-color: var(--au-hl); outline: none }
+.mock .clip .fh { position: absolute; top: 3px; width: 9px; height: 9px; background: #fff; border: 1px solid #222 }
+.mock .clip .edge { position: absolute; top: 0; bottom: 0; right: 0; width: 4px; background: rgba(255,255,255,.7) }
+.mock .clip svg.fd { position: absolute; top: 0; right: 0; height: 100% }
+.mock .phd { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff5a5a; z-index: 3 }
+.mock.view-multi .ruler { display: none }
+.mock .sth { height: 26px; background: #38383d; display: flex; align-items: center; padding: 0 10px; font-weight: 600 }
+.mock .okrow { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px }
+.mock .mt .trk { height: 92px; border-bottom: 1px solid var(--au-line); display: grid; grid-template-columns: 120px 1fr; }
+.mock .mt .trk .hd { background: #2c2c30; padding: 6px 8px; font-size: 11px; color: var(--au-dim); border-right: 1px solid var(--au-line) }
+.mock .mt .trk .hd b { display: block; color: var(--au-text); font-weight: 600 }
+.mock .mt .lane { position: relative }
+.mock .mt .clip { position: absolute; top: 10px; height: 72px; text-overflow: ellipsis; border-radius: 3px; padding: 3px 6px; font-size: 10px; color: #0d2a1e; background: linear-gradient(#56d8a6, #2fa877); overflow: hidden; white-space: nowrap }
+.mock .mt .clip.b { background: linear-gradient(#7fb0ff, #4f84e0); color: #0c1d3d }
+.mock .mt .clip.c { background: linear-gradient(#ffb48f, #e07b55); color: #3d170a }
+.mock.view-multi .mt { display: block }
+.mock.view-multi canvas.wv, .mock.view-multi .chl { display: none }
+.mock .cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; z-index: 12; pointer-events: none; transition: transform .9s cubic-bezier(.5,0,.2,1) }
+.mock .cursor svg { width: 22px; height: 22px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.7)) }
+.mock .ripple { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 2px solid var(--au-hl); z-index: 11; pointer-events: none; animation: rip .6s ease-out forwards }
+/* Audition 2026 layout (matches the teacher's screenshots) */
+.mock .mb { position: absolute; top: 0; left: 0; right: 0; height: 22px; background: #5a1e26; color: #f3e9ea; gap: 0; padding: 0 8px; border: 0; font-size: 12px; align-items: center }
+.mock .mb b { padding: 0 10px 0 4px; font-weight: 700 }
+.mock .mb .apple { width: 10px; height: 12px; background: #f3e9ea; border-radius: 5px 5px 4px 4px; padding: 0; margin-right: 6px }
+.mock .mb span { padding: 0 7px; height: 20px; border-radius: 4px }
+.mock .mb span.open { background: rgba(255,255,255,.28); color: #fff }
+.mock .tb { position: absolute; top: 22px; left: 0; right: 0; height: 20px; background: #ececee; color: #555; gap: 6px; padding: 0 8px }
+.mock .tb i:nth-child(1) { background: #ff5f57 } .mock .tb i:nth-child(2) { background: #febc2e } .mock .tb i:nth-child(3) { background: #28c840 }
+.mock .tb span { margin: 0 auto; transform: translateX(-30px) }
+.mock .tbar { position: absolute; top: 42px; left: 0; right: 0; height: 26px; background: var(--au-bar); display: flex; align-items: center; gap: 4px; padding: 0 6px; border-bottom: 1px solid var(--au-line) }
+.mock .tbar .tab { padding: 3px 8px; color: var(--au-dim); border-radius: 3px }
+.mock .tbar .tab.on { color: #5aa9ff; background: #1d2a3a }
+.mock .tbar .wsn { margin-left: auto; color: #5aa9ff; font-size: 11px }
+.mock .ws { top: 70px }
+.mock .ph span { color: var(--au-dim) }
+.mock .files .cols { display: flex; justify-content: space-between; padding: 3px 8px; font-size: 10px; color: var(--au-dim); border-bottom: 1px solid var(--au-line) }
+.mock .files div.cur { color: #5aa9ff; background: none }
+.mock .tr .st { margin-left: auto; font-size: 11px; color: var(--au-dim); padding: 0 4px }
+.mock .menu { background: rgba(236,236,238,.98); color: #1d1d1f; border: 1px solid #c8c8cc; border-radius: 8px; padding: 5px; box-shadow: 0 10px 30px rgba(0,0,0,.45) }
+.mock .menu div { padding: 3px 10px; border-radius: 5px }
+.mock .menu div em { color: #77777c }
+.mock .menu div.hr { background: #cfcfd3; margin: 4px 6px; padding: 0 }
+.mock .menu div.on { background: #c9252c; color: #fff }
+.mock .menu div.on em { color: #fde }
+.mock .menu div[data-m="special"].on { background: #c3c3c8; color: #111 }
+.mock .dlg { left: 230px; top: 76px; width: 580px; height: 440px; background: #232325; border: 1px solid #555; border-radius: 10px; overflow: hidden }
+.mock .dlg .dt { background: #ececee; color: #222; justify-content: center; height: 24px; font-weight: 500 }
+.mock .dlg .pr { border-bottom: 1px solid #3a3a3e; padding: 10px 12px }
+.mock .dlg .pr .sel { border-color: #3d7bd8; min-width: 190px }
+.mock .dlg .bd { grid-template-columns: 1fr 220px; padding: 10px 12px; gap: 8px; border: 1px solid #333; margin: 10px }
+.mock .prm { gap: 4px }
+.mock .prm .r { grid-template-columns: 96px auto 1fr; gap: 6px; padding: 3px 4px }
+.mock .prm .r .lb { text-align: right; color: #b9b9c0 }
+.mock .prm .r .v { font: 12px var(--f-mono); color: #5aa9ff; text-align: left }
+.mock .prm .r .un { color: #b9b9c0 }
+.mock .prm .r.pt { display: flex; gap: 8px; align-items: center; margin-bottom: 4px }
+.mock .prm .rad { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #9a9aa0; display: inline-block }
+.mock .prm .rad.on { background: #9a9aa0 }
+.mock .q { margin: 10px 0 0; border-top: 0; padding: 4px; gap: 4px; color: #b9b9c0 }
+.mock .q .ck i { background: #8d8d94; border-color: #8d8d94; color: #111 }
+.mock .graph { height: 220px; background: transparent; border: 0 }
+.mock .io { position: absolute; left: 12px; bottom: 46px; color: #b9b9c0; font-size: 11px }
+.mock .dlg .ft { height: 44px }
+.mock .dlg .btn { border-radius: 12px; background: transparent; border: 1.5px solid #8d8d94; padding: 3px 20px }
+.mock .ib.pw { background: #1f8a5b; color: #fff; border-color: #1f8a5b }
+.mock .finder { position: absolute; left: 130px; top: 100px; width: 520px; height: 300px; background: #f6f6f8; color: #222; border-radius: 10px; box-shadow: 0 16px 40px rgba(0,0,0,.6); z-index: 7 }
+.mock .finder .fbar { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid #ddd }
+.mock .finder .fbar i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57 } .mock .finder .fbar i:nth-child(2) { background: #febc2e } .mock .finder .fbar i:nth-child(3) { background: #28c840 }
+.mock .finder .fbar b { margin-left: 14px }
+.mock .finder .fbody { display: grid; grid-template-columns: 120px 1fr; height: 268px }
+.mock .finder .fside { background: #e6e6eb; padding: 10px; font-size: 11px; line-height: 2; color: #555; border-bottom-left-radius: 10px }
+.mock .finder .flist2 { padding-top: 6px }
+.mock .finder .flist2 div { padding: 4px 12px; margin: 0 6px; display: flex; gap: 8px; align-items: center; font-size: 12px; border-radius: 4px }
+.mock .finder .flist2 div.sel { background: #2f6fe0; color: #fff }
+.mock .finder .fd { width: 16px; height: 12px; background: #5ab0f0; border-radius: 2px }
+.mock .finder .fi { width: 12px; height: 14px; background: #ccc }
+.mock .fctx { left: 290px; top: 34px }
+@keyframes rip { from { transform: scale(.3); opacity: 1 } to { transform: scale(1.4); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .mock .cursor { transition: none } .mock .ripple { display: none } }
+
+@media (max-width: 860px) {
+  header.hero .wrap, .theory, .cols2, .snd.wide, .intro, .about, .map, .step .body, .modes { grid-template-columns: minmax(0, 1fr) }
+  .sounds { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) }
+  .bar nav { display: none }
+  header.hero .wrap { padding-block: 40px 36px }
+  section { padding-block: 52px 16px }
+}
+@media (max-width: 560px) {
+  .sounds { grid-template-columns: minmax(0, 1fr) }
+  .step .head, .step .body { padding-inline: 16px }
+  .step .shot { margin: 0 16px; max-width: calc(100% - 32px) }
+}
+</style>
+
+<div class="bar"><div class="wrap">
+  <div class="brand">Doppler Shifter</div>
+  <nav aria-label="sections">
+    <a href="#start"><span class="ja">はじめに</span><span class="zh">开始</span></a>
+    <a href="#about"><span class="ja">Audition</span><span class="zh">Audition</span></a>
+    <a href="#theory"><span class="ja">しくみ</span><span class="zh">原理</span></a>
+    <a href="#sounds"><span class="ja">素材</span><span class="zh">素材</span></a>
+    <a href="#video"><span class="ja">動画</span><span class="zh">视频</span></a>
+    <a href="#steps"><span class="ja">手順</span><span class="zh">步骤</span></a>
+    <a href="#ref"><span class="ja">早見表</span><span class="zh">速查</span></a>
+    <a href="#task"><span class="ja">困ったとき</span><span class="zh">问题</span></a>
+  </nav>
+  <div class="seg" role="group" aria-label="language">
+    <button id="lang-ja" data-l="ja">日本語</button>
+    <button id="lang-both" data-l="both">日本語＋中文</button>
+    <button id="lang-zh" data-l="zh">中文</button>
+  </div>
+</div></div>
+
+<header class="hero"><div class="wrap">
+  <div>
+    <div class="eyebrow">Adobe Audition · Doppler Shifter</div>
+    <h1 class="t"><span class="ja"><span class="nw">ドップラーシフター</span><br>入門</span><span class="zh">多普勒频移 入门</span></h1>
+    <p class="lead t"><span class="ja">救急車が通り過ぎるとき、サイレンの音が「ウ〜↓」と低くなるのを聞いたことがありますか？ この授業では、Adobe Audition の「ドップラーシフター」を使って、音が<b>近づいて、目の前を通って、遠ざかる</b>動きを自分で作ります。Audition が初めてでも大丈夫。上から順番に進めれば、最後には宇宙の環境音と組み合わせた30〜45秒の作品が完成します。</span><span class="zh">你有没有听过救护车经过时，警笛声突然"呜～↓"变低？这节课我们用 Adobe Audition 的「多普勒频移」效果，亲手做出声音<b>靠近 → 从面前经过 → 远去</b>的运动。第一次用 Audition 也没关系，按从上到下的顺序做，最后就能完成一段和宇宙环境音结合的30〜45秒作品。</span></p>
+  </div>
+  <div>
+    <canvas class="cv" id="heroCv" aria-label="wavefront animation"></canvas>
+    <div class="legend"><span><b style="background:var(--near)"></b><span class="i"><span class="ja">近づく＝波が詰まる＝高い音</span><span class="zh">靠近＝波被压缩＝音变高</span></span></span><span><b style="background:var(--far)"></b><span class="i"><span class="ja">遠ざかる＝波が伸びる＝低い音</span><span class="zh">远离＝波被拉长＝音变低</span></span></span></div>
+  </div>
+</div></header>
+
+<main>
+<section id="start"><div class="wrap">
+  <h2 class="t"><span class="ja">1. はじめに</span><span class="zh">1. 开始之前</span></h2>
+  <div class="intro">
+    <div class="snd">
+      <h3 class="t"><span class="ja">この授業でできるようになること</span><span class="zh">这节课你将学会</span></h3>
+      <ul class="clean">
+        <li class="t"><span class="ja">ドップラー効果が<b>なぜ起きるのか</b>を、自分のことばで説明できる</span><span class="zh">能用自己的话说明多普勒效应<b>为什么会发生</b></span></li>
+        <li class="t"><span class="ja">Audition の<b>ドップラーシフター</b>で、音が通り過ぎる動きを作れる</span><span class="zh">能用 Audition 的<b>多普勒频移</b>做出声音经过的运动</span></li>
+        <li class="t"><span class="ja"><b>マルチトラック</b>で複数の音を組み合わせて、1つの作品として書き出せる</span><span class="zh">能在<b>多轨</b>中组合多个声音，导出成一个作品</span></li>
+      </ul>
+    </div>
+    <div class="snd">
+      <h3 class="t"><span class="ja">準備するもの</span><span class="zh">需要准备的东西</span></h3>
+      <ul class="clean">
+        <li class="t"><span class="ja">Adobe Audition が入ったパソコン</span><span class="zh">装有 Adobe Audition 的电脑</span></li>
+        <li class="t"><span class="ja"><b>ヘッドホン</b>（左右の動きを聞くために必要です）</span><span class="zh"><b>耳机</b>（为了听清左右移动，必须要有）</span></li>
+        <li><span class="t"><span class="ja">素材（練習で使う音）をダウンロード</span><span class="zh">下载素材（练习用的声音）</span></span>
+          <span class="dl-row"><a class="dl-btn" href="https://drive.google.com/file/d/1pHBhzilB_KrnGUK9n1f3PcpBKf_rToVT/view?usp=drive_link" target="_blank" rel="noopener">⬇ <span class="i"><span class="ja">Google ドライブからダウンロード</span><span class="zh">从 Google Drive 下载</span></span></a></span>
+          <span class="dl-msg t" id="dlMsg"><span class="ja">Google ドライブのページが開いたら、右上の ⬇（ダウンロード）を押します。解凍すると「doppler-lesson-ST」フォルダーができ、中の「01_素材_source」に7つの音が入っています。</span><span class="zh">打开 Google Drive 页面后，点右上角的 ⬇（下载）。解压后会得到「doppler-lesson-ST」文件夹，里面的「01_素材_source」中有7个声音文件。</span></span></li>
+      </ul>
+    </div>
+    <div class="snd">
+      <h3 class="t"><span class="ja">進め方</span><span class="zh">学习顺序</span></h3>
+      <ol class="clean steps-mini">
+        <li class="t"><span class="ja">「Audition ってどんなソフト？」で画面の名前を覚える</span><span class="zh">在"Audition 是什么软件？"里认识画面各部分</span></li>
+        <li class="t"><span class="ja">「しくみ」を読んで、なぜ音が変わるのかを知る</span><span class="zh">阅读"原理"，了解声音为什么会变</span></li>
+        <li class="t"><span class="ja">「練習で使う音」を聴いて、完成のイメージをつかむ</span><span class="zh">听"练习用的声音"，想象完成后的效果</span></li>
+        <li class="t"><span class="ja">「動画」を一度、最後まで見る</span><span class="zh">把"视频"从头到尾看一遍</span></li>
+        <li class="t"><span class="ja">「手順」を1つずつやる（できたら ✓）</span><span class="zh">按"步骤"一步一步做（完成后打 ✓）</span></li>
+        </ol>
+    </div>
+  </div>
+  <h3 class="t gloss-h"><span class="ja">知っておきたいことば</span><span class="zh">需要知道的词语</span></h3>
+  <div class="tw"><table class="gloss"><thead><tr><th><span class="i"><span class="ja">ことば</span><span class="zh">词语</span></span></th><th><span class="i"><span class="ja">意味</span><span class="zh">意思</span></span></th></tr></thead><tbody>
+  <tr><td><b>波形（はけい）</b><div class="uialt zh-only">波形</div></td><td><span class="t"><span class="ja">音を「山と谷の形」で表した図。山が高いほど大きい音。</span><span class="zh">用"山和谷的形状"表示声音的图。山越高，声音越大。</span></span></td></tr>
+  <tr><td><b>ステレオ</b><div class="uialt zh-only">立体声</div></td><td><span class="t"><span class="ja">左（L）と右（R）、2つの音を持つ音声。左右の動きを表現できる。</span><span class="zh">有左（L）右（R）两个声道的音频，能表现左右移动。</span></span></td></tr>
+  <tr><td><b>サンプルレート（Hz）</b><div class="uialt zh-only">采样率</div></td><td><span class="t"><span class="ja">1秒間に音を何回記録するか。48000 Hz＝1秒に48000回。</span><span class="zh">每秒记录声音的次数。48000 Hz＝每秒48000次。</span></span></td></tr>
+  <tr><td><b>ビット深度（ビット）</b><div class="uialt zh-only">位深度</div></td><td><span class="t"><span class="ja">音の大きさをどれだけ細かく記録するか。16 ビットは CD と同じ品質。</span><span class="zh">记录音量的精细程度。16 位和 CD 品质相同。</span></span></td></tr>
+  <tr><td><b>ドップラーシフター</b><div class="uialt zh-only">多普勒频移</div></td><td><span class="t"><span class="ja">音が動いているように聞こえるよう、音の高さ・大きさ・左右を自動で変えるエフェクト。</span><span class="zh">自动改变音高、音量和左右位置，让声音听起来在运动的效果。</span></span></td></tr>
+  <tr><td><b>トラック</b><div class="uialt zh-only">轨道</div></td><td><span class="t"><span class="ja">マルチトラックで、音を置く横長の段。</span><span class="zh">多轨中放声音的横条。</span></span></td></tr>
+  <tr><td><b>クリップ</b><div class="uialt zh-only">片段</div></td><td><span class="t"><span class="ja">トラックの上に置いた音のかたまり。</span><span class="zh">放在轨道上的声音块。</span></span></td></tr>
+  <tr><td><b>セッション</b><div class="uialt zh-only">会话</div></td><td><span class="t"><span class="ja">マルチトラックの作業ファイル（作品の設計図）。拡張子は .sesx。</span><span class="zh">多轨的工程文件（作品的设计图），扩展名 .sesx。</span></span></td></tr>
+  <tr><td><b>dB（デシベル）</b><div class="uialt zh-only">分贝</div></td><td><span class="t"><span class="ja">音の大きさの単位。マイナスの数字が大きいほど小さい音。</span><span class="zh">音量单位。负数越大，声音越小。</span></span></td></tr>
+  <tr><td><b>半音</b><div class="uialt zh-only">半音</div></td><td><span class="t"><span class="ja">ピアノの隣どうしの鍵盤の、音の高さの差。</span><span class="zh">钢琴上相邻两个键之间的音高差。</span></span></td></tr>
+  <tr><td><b>スペクトル表示</b><div class="uialt zh-only">频谱显示</div></td><td><span class="t"><span class="ja">音の高さと大きさを色で表した図。横＝時間、縦＝音の高さ、色＝音の大きさ。</span><span class="zh">用颜色表示音高和音量的图。横向＝时间，纵向＝音高，颜色＝音量。</span></span></td></tr>
+  </tbody></table></div>
+</div></section>
+
+<section id="about"><div class="wrap">
+  <h2 class="t"><span class="ja">2. Audition ってどんなソフト？</span><span class="zh">2. Audition 是什么软件？</span></h2>
+  <p class="sub t"><span class="ja"><b>Adobe Audition（アドビ オーディション）</b>は、Photoshop や Premiere Pro と同じアドビ社が作っている<b>「音」の編集ソフト</b>です。Photoshop が写真、Premiere Pro が動画を編集するように、Audition は録音した声・音楽・効果音を<b>切る、つなぐ、大きさを整える、雑音を消す、響きや動きを加える</b>ことができます。</span><span class="zh"><b>Adobe Audition</b> 是和 Photoshop、Premiere Pro 同一家公司（Adobe）出品的<b>"声音"编辑软件</b>。Photoshop 编辑照片，Premiere Pro 编辑视频，而 Audition 可以对录下的人声、音乐、音效进行<b>剪切、拼接、调整音量、去除杂音、加入混响或运动感</b>等处理。</span></p>
+  <div class="about">
+    <div class="snd">
+      <h3 class="t"><span class="ja">どんなところで使われている？</span><span class="zh">用在哪些地方？</span></h3>
+      <div class="uses"><span class="u"><span class="i"><span class="ja">ラジオ・ポッドキャスト</span><span class="zh">广播・播客</span></span></span><span class="u"><span class="i"><span class="ja">動画やCMの音</span><span class="zh">视频和广告的声音</span></span></span><span class="u"><span class="i"><span class="ja">ナレーション・声の録音</span><span class="zh">旁白・人声录音</span></span></span><span class="u"><span class="i"><span class="ja">映画やゲームの効果音</span><span class="zh">电影和游戏的音效</span></span></span><span class="u"><span class="i"><span class="ja">雑音（ノイズ）の除去</span><span class="zh">去除杂音</span></span></span></div>
+    </div>
+    <div class="snd">
+      <h3 class="t"><span class="ja">2つの画面を使い分ける</span><span class="zh">两种画面分开使用</span></h3>
+      <div class="modes">
+        <div class="mode w"><div class="k">波形<small>Waveform</small></div><p class="t"><span class="ja">1つの音を細かく加工する<b>「作業台」</b>。今回はここでドップラーシフターをかけます。</span><span class="zh">细致加工一个声音的<b>"工作台"</b>。这次在这里加多普勒频移。</span></p></div>
+        <div class="mode m"><div class="k">マルチトラック<small>Multitrack</small></div><p class="t"><span class="ja">たくさんの音を時間に沿って並べる<b>「舞台」</b>。今回はここで環境音と効果音を組み合わせます。</span><span class="zh">把很多声音按时间排列的<b>"舞台"</b>。这次在这里组合环境音和音效。</span></p></div>
+      </div>
+    </div>
+  </div>
+  <div class="snd">
+    <h3 class="t"><span class="ja">画面の各部分の名前</span><span class="zh">画面各部分的名称</span></h3>
+    <div class="map">
+      <div class="real show" id="auMap"></div>
+      <ol><li><span class="n">1</span><span><b>波形 / マルチトラック</b><span class="t"><span class="ja">2つの画面の切り替えボタン</span><span class="zh">切换两种画面的按钮</span></span></span></li><li><span class="n">2</span><span><b>ファイル</b><span class="t"><span class="ja">開いた音の一覧（材料箱）</span><span class="zh">已打开的声音列表（材料箱）</span></span></span></li><li><span class="n">3</span><span><b>エディター</b><span class="t"><span class="ja">音を見ながら編集する場所。今は波形が表示されている</span><span class="zh">边看边编辑声音的地方，现在显示的是波形</span></span></span></li><li><span class="n">4</span><span><b>再生ボタン</b><span class="t"><span class="ja">再生・停止・先頭へ など</span><span class="zh">播放、停止、回到开头等</span></span></span></li><li><span class="n">5</span><span><b>レベルメーター</b><span class="t"><span class="ja">今鳴っている音の大きさ</span><span class="zh">当前声音的大小</span></span></span></li><li><span class="n">6</span><span><b>ステータス</b><span class="t"><span class="ja">音の情報（48000 Hz・16 ビット・ステレオ）</span><span class="zh">声音信息（48000 Hz・16 位・立体声）</span></span></span></li></ol>
+    </div>
+  </div>
+</div></section>
+
+<section id="theory"><div class="wrap">
+  <h2 class="t"><span class="ja">3. しくみ：なぜ音の高さが変わる？</span><span class="zh">3. 原理：为什么音高会变？</span></h2>
+  <p class="sub t"><span class="ja">音は空気をつたわる<b>波</b>です。波の間隔がせまいと<b>高い音</b>、広いと<b>低い音</b>に聞こえます。<br>音を出すものが<b>こちらへ向かって動く</b>と、波がぎゅっと詰まって<b>高い音</b>に。<b>遠ざかる</b>と、波が引き伸ばされて<b>低い音</b>になります。これが「ドップラー効果」です。救急車のサイレン、踏切を通過する電車、レースカーの「ブーン↓」も、すべて同じしくみです。下のアニメーションで確かめてみよう。</span><span class="zh">声音是在空气中传播的<b>波</b>。波的间隔窄，听起来是<b>高音</b>；间隔宽，就是<b>低音</b>。<br>发声的东西<b>朝你移动</b>时，波被挤紧，声音变<b>高</b>；<b>远离</b>时，波被拉长，声音变<b>低</b>。这就是"多普勒效应"。救护车警笛、经过道口的电车、赛车的"嗡↓"声，都是同一个原理。用下面的动画确认一下吧。</span></p>
+  <div class="theory">
+    <div>
+      <canvas class="cv" id="thCv" aria-label="doppler bee animation"></canvas>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">
+        <button class="play" id="thPlay" data-src="audio/03_bee_straight.mp3"><svg viewBox="0 0 10 10"><path d="M1 0l9 5-9 5z"/></svg><span class="i"><span class="ja">音と同期して見る</span><span class="zh">声音同步播放</span></span></button>
+        <span class="pitch"><span class="i"><span class="ja">聞こえる高さ</span><span class="zh">听到的音高</span></span> <b id="thHz">195 Hz</b> <span id="thSt" class="chip">±0</span></span>
+      </div>
+      <p class="note t"><span class="ja">蜂の音（195 Hz）が秒速40 mで、5 m前を左→右に通過。図の波の間隔は見やすいよう誇張しています。数値は実際の計算値です。</span><span class="zh">蜂鸣声（195 Hz）以每秒40米的速度从面前5米处由左向右经过。图中波纹间距为便于观看做了夸张处理，数值是真实计算结果。</span></p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div class="formula"><span style="color:var(--muted)"><span class="i"><span class="ja">（興味がある人へ）計算式</span><span class="zh">（感兴趣的同学看）计算公式</span></span></span><br>f' = f × c ÷ (c − v·cosθ)<br><span style="color:var(--muted)">c = 343 m/s (音速 / 声速)</span></div>
+      <ul class="clean">
+        <li class="t"><span class="ja"><b class="near">近づく時</b>：v·cosθ がプラス → 分母が小さい → 音が<b>高く</b>なる</span><span class="zh"><b class="near">靠近时</b>：v·cosθ 为正 → 分母变小 → 音变<b>高</b></span></li>
+        <li class="t"><span class="ja"><b>真横を通る瞬間</b>：cosθ＝0 → 元の高さ。ここで一気に音程が切り替わる</span><span class="zh"><b>正好经过面前</b>：cosθ＝0 → 回到原音高，音高在这里急转</span></li>
+        <li class="t"><span class="ja"><b class="far">遠ざかる時</b>：分母が大きい → 音が<b>低く</b>なる</span><span class="zh"><b class="far">远离时</b>：分母变大 → 音变<b>低</b></span></li>
+        <li class="t"><span class="ja">あわせて「遠い＝小さい・近い＝大きい」、「左→右」の移動も付くので、空間を通り抜ける感じになります。</span><span class="zh">再加上"远＝小声、近＝大声"和"左→右"的移动，就形成了从空间中穿过的感觉。</span></li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<section id="sounds"><div class="wrap">
+  <h2 class="t"><span class="ja">4. 練習で使う音</span><span class="zh">4. 练习用的声音</span></h2>
+  <p class="sub t"><span class="ja">まずは全部聴いてみよう（ヘッドホン推奨）。「元の音」と「完成例」を聴き比べると、これから自分で作る音のイメージがつかめます。<br>Audition で使うファイルは、ダウンロードした素材の <code class="mono">01_素材_source</code> フォルダーにあります。<b>使う前に、手順01でかならずコピーを作ってください。</b>「完成例」はコンピューターで計算して作った見本なので、あなたの結果と少し違っても大丈夫です。</span><span class="zh">先全部听一遍吧（建议戴耳机）。对比"原声"和"完成示例"，就能想象出你接下来要做的声音。<br>Audition 里用的文件在下载的素材中的 <code class="mono">01_素材_source</code> 文件夹里。<b>使用前，一定要按步骤01先复制一份。</b>"完成示例"是电脑计算出来的样本，和你的结果有些不同也没关系。</span></p>
+  <div class="sounds" id="soundGrid"></div>
+</div></section>
+
+<section id="video"><div class="wrap">
+  <h2 class="t"><span class="ja">5. 動画で流れをつかむ</span><span class="zh">5. 看视频了解流程</span></h2>
+  <p class="sub t"><span class="ja">手を動かす前に、まず一度最後まで見てみよう（約3分半）。<b>黄色い枠</b>が「次にクリックする場所」です。「実際の画面」マークは Audition 2026 の本物の画面、「説明図」はそれをもとに描いた図です。</span><span class="zh">动手之前，先从头到尾看一遍（约3分半钟）。<b>黄色框</b>是"下一步要点击的位置"。带「实际画面」标记的是 Audition 2026 的真实画面，「示意图」是参照它画的图。</span></p>
+  <div class="player" id="player">
+    <div class="stage" id="stage"></div>
+    <div class="cap" id="cap" aria-live="polite"></div>
+    <div class="ctrl">
+      <button class="big" id="vPlay">▶ <span class="i"><span class="ja">再生</span><span class="zh">播放</span></span></button>
+      <button id="vPrev" aria-label="previous">◀◀</button>
+      <button id="vNext" aria-label="next">▶▶</button>
+      <div class="prog" id="prog"></div>
+      <div class="seg uiseg" role="group" aria-label="screen language"><button data-ui="ja">画面：日本語版</button><button data-ui="en">画面：英語版</button></div>
+      <label><input type="checkbox" id="vNarr"> <span class="i"><span class="ja">音声解説</span><span class="zh">语音讲解</span></span></label>
+      <label><input type="checkbox" id="vSound" checked> <span class="i"><span class="ja">音あり</span><span class="zh">有声音</span></span></label>
+      <label><span class="i"><span class="ja">速さ</span><span class="zh">速度</span></span>
+        <select id="vSpeed" style="font:inherit;font-size:12px;background:#2c2c31;color:#eee;border:0;border-radius:4px;padding:2px 4px"><option value="1.4">0.7×</option><option value="1" selected>1×</option><option value="0.7">1.4×</option></select></label>
+    </div>
+  </div>
+</div></section>
+
+<section id="steps"><div class="wrap">
+  <h2 class="t"><span class="ja">6. やってみよう：28の手順</span><span class="zh">6. 动手做：28个步骤</span></h2>
+  <p class="sub t"><span class="ja">1つずつ、順番に進めましょう。各手順は「<b>操作</b>（何をするか）」と「<b>なぜ？</b>（どうしてそうするか）」に分かれています。<b>「なぜ？」も必ず読んでください。</b>理由がわかると、自分の作品で設定を変えるときに迷わなくなります。できたら右上の「できた」にチェックしよう。</span><span class="zh">按顺序一步一步来。每一步分为「<b>操作</b>（做什么）」和「<b>为什么</b>（为什么这样做）」。<b>"为什么"也一定要读。</b>明白了原因，在自己的作品里改设置时就不会迷茫。完成后在右上角的「完成」打勾。</span></p>
+  <div class="progress"><span class="i"><span class="ja">進み具合</span><span class="zh">进度</span></span> <b id="doneCount">0 / 28</b></div>
+  <div class="seg uiseg" role="group" aria-label="screen language"><button data-ui="ja">画面：日本語版</button><button data-ui="en">画面：英語版</button></div>
+  <div class="steps" id="stepList"></div>
+</div></section>
+
+<section id="ref"><div class="wrap">
+  <h2 class="t"><span class="ja">7. 早見表（困ったときに見よう）</span><span class="zh">7. 速查表（遇到问题时看）</span></h2>
+  <div class="cols2">
+    <div>
+      <h3 class="t" style="margin-bottom:10px"><span class="ja">速度と音程変化の目安</span><span class="zh">速度与音高变化</span></h3>
+      <div class="tw"><table id="speedTable"></table></div>
+      <p class="note t"><span class="ja">「全体の幅」＝近づく時の高さから遠ざかる時の高さまで。半音1つ＝ピアノの隣の鍵盤。2半音以上あると誰でも聞き取れます。</span><span class="zh">"总幅度"＝从靠近时的音高到远离时的音高。1个半音＝钢琴上相邻的两个键。超过2个半音时人人都能听出来。</span></p>
+    </div>
+    <div>
+      <h3 class="t" style="margin-bottom:10px"><span class="ja">パラメーター名と役割</span><span class="zh">参数名称与作用</span></h3>
+      <div class="tw"><table id="paramTable"></table></div>
+      <p class="note t"><span class="ja">日本語・中国語の UI 名は参考訳です。</span><span class="zh">日文、中文界面名为参考译名。</span></p>
+    </div>
+  </div>
+  <div class="tw" id="recWrap"><table id="recTable"></table></div>
+</div></section>
+
+<section id="task"><div class="wrap">
+  <h2 class="t"><span class="ja">8. 困ったときは</span><span class="zh">8. 遇到问题时</span></h2>
+  <div class="snd">
+    <ul class="clean">
+      <li class="t"><span class="ja"><b>メニューに「ドップラーシフター」がない</b> → マルチトラックの画面になっています。左上の「波形」を押すか、クリップをダブルクリックして波形エディターへ。</span><span class="zh"><b>菜单里没有「多普勒频移」</b> → 现在是多轨画面。点左上角的「波形」，或双击片段进入波形编辑器。</span></li>
+      <li class="t"><span class="ja"><b>左右に動かない</b> → ファイルがモノラルかも。右下に「ステレオ」と出ているか確認。ヘッドホンで聴いているかも確認。</span><span class="zh"><b>没有左右移动</b> → 文件可能是单声道。确认右下角显示「ステレオ」。也确认是否戴着耳机。</span></li>
+      <li class="t"><span class="ja"><b>音の高さが変わらない</b> → 速度が小さすぎるか、円の中心が自分の位置になっています。速度を上げるか、中心をずらそう。</span><span class="zh"><b>音高没变化</b> → 速度太小，或圆心在自己的位置。提高速度或移开圆心。</span></li>
+      <li class="t"><span class="ja"><b>ほとんど音がしない</b> → 開始距離が大きすぎて、音が近づく前に終わっています。開始距離を小さくしよう。</span><span class="zh"><b>几乎没声音</b> → 起始距离太大，声音还没靠近就结束了。把起始距离调小。</span></li>
+      <li class="t"><span class="ja"><b>まちがえて適用した</b> → ⌘Z（command + Z）で1つ前に戻れます。</span><span class="zh"><b>误按了应用</b> → 按 ⌘Z（command + Z）可以回到上一步。</span></li>
+      <li class="t"><span class="ja"><b>まちがえて ⌘S で上書きした</b> → 「作業用」フォルダーを消して、「01_素材_source」をもう一度複製すればやり直せます。</span><span class="zh"><b>不小心按 ⌘S 覆盖了</b> → 删掉「作業用」文件夹，再复制一次「01_素材_source」就能重来。</span></li>
+      <li class="t"><span class="ja">それでも解決しないときは、画面のスクリーンショットを撮って先生に見せよう。</span><span class="zh">还是解决不了时，截个图给老师看。</span></li>
+    </ul>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap t">
+  <span class="ja">この教材の音は、すべてこの授業のために作ったオリジナルです。「説明図」は実際の Audition の画面と細部が少し違うことがあります。</span>
+  <span class="zh">本教材的声音全部是为这节课制作的原创音源。「示意图」和实际的 Audition 画面在细节上可能略有不同。</span>
+  <div class="credit">京都芸術大学　情報デザイン学科<br>表現演習3‐体験デザイン（映像制作）<br><span class="nm">JIALIANG LIU</span></div>
+</div></footer>
+
+<script>
+(() => {
+const T = (o, inl) => `<span class="${inl ? 'i' : 't'}"><span class="ja">${o.ja}</span><span class="zh">${o.zh}</span></span>`;
+const $ = (s, r = document) => r.querySelector(s);
+const C = 343;
+
+/* ---------- language ---------- */
+function setLang(l) {
+  document.documentElement.dataset.lang = l;
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'ja';
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === l));
+  try { localStorage.setItem('doppler-lang', l) } catch (e) {}
+}
+let saved = 'both'; try { saved = localStorage.getItem('doppler-lang') || 'both' } catch (e) {}
+setLang(saved);
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => setLang(b.dataset.l));
+
+/* ---------- audio: one shared element ---------- */
+const audio = new Audio(); audio.preload = 'none';
+let activeBtn = null;
+function stopAudio() { audio.pause(); if (activeBtn) activeBtn.classList.remove('on'); activeBtn = null }
+function playAudio(src, btn) {
+  if (activeBtn === btn && !audio.paused) { stopAudio(); return }
+  stopAudio(); audio.src = src; audio.currentTime = 0; audio.play().catch(() => {});
+  activeBtn = btn; if (btn) btn.classList.add('on');
+}
+audio.addEventListener('ended', () => { if (activeBtn) activeBtn.classList.remove('on'); activeBtn = null });
+const ICON = '<svg viewBox="0 0 10 10"><path d="M1 0l9 5-9 5z"/></svg>';
+
+/* ---------- narration (voice guide): ja page / both → Japanese, zh page → Chinese ---------- */
+const narr = new Audio(); narr.preload = 'none';
+let narrBtn = null;
+const narrLang = () => document.documentElement.dataset.lang === 'zh' ? 'zh' : 'ja';
+const narrSrc = name => 'audio/narr/' + narrLang() + '/' + name + '.mp3';
+function stopNarr() { narr.pause(); narr.onended = null; if (narrBtn) narrBtn.classList.remove('on'); narrBtn = null }
+const NB = { ja: '音声解説を聞く', zh: '听语音讲解' }, NBS = { ja: '停止する', zh: '停止' };
+function narrLabel(b, on) { b.querySelector('.lb').innerHTML = T(on ? NBS : NB, 1); b.querySelector('.ic').textContent = on ? '■' : '▶' }
+['start', 'about', 'theory', 'sounds', 'video', 'steps', 'ref', 'task'].forEach(id => {
+  const h2 = document.querySelector('#' + id + ' h2'); if (!h2) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'narr-btn';
+  b.innerHTML = '<span class="ic">▶</span><span class="lb"></span>'; narrLabel(b, false);
+  b.onclick = () => {
+    const was = narrBtn === b; stopNarr(); document.querySelectorAll('.narr-btn').forEach(x => narrLabel(x, false));
+    if (was) return;
+    stopAudio(); narr.src = narrSrc('sec_' + id); narr.currentTime = 0; narr.playbackRate = 1; narr.play().catch(() => {});
+    narrBtn = b; b.classList.add('on'); narrLabel(b, true);
+    narr.onended = () => { b.classList.remove('on'); narrLabel(b, false); narrBtn = null };
+  };
+  h2.after(b);
+});
+document.querySelectorAll('.seg button[data-l]').forEach(b => b.addEventListener('click', () => { stopNarr(); document.querySelectorAll('.narr-btn').forEach(x => narrLabel(x, false)) }));
+
+/* ---------- download all materials: WAVs zipped in the browser (the 90 s ambient comes in two halves) ---------- */
+const DL_FILES = [{"name":"00_ambient_cosmic_宇宙環境音.wav","parts":["dl/00a.wav","dl/00b.wav"]},{"name":"01_birds_鳥.wav","parts":["dl/01.wav"]},{"name":"02_wind_風.wav","parts":["dl/02.wav"]},{"name":"03_bee_蜂.wav","parts":["dl/03.wav"]},{"name":"04_cricket_虫.wav","parts":["dl/04.wav"]},{"name":"05_cosmic_hum_宇宙ハム.wav","parts":["dl/05.wav"]},{"name":"06_LR_check_左右チェック.wav","parts":["dl/06.wav"]}];
+function wavDataOffset(b) {
+  const v = new DataView(b); let o = 12;
+  while (o < b.byteLength) { const id = String.fromCharCode(...new Uint8Array(b, o, 4)), s = v.getUint32(o + 4, true); if (id === 'data') return o + 8; o += 8 + s + (s & 1) }
+  throw new Error('no data chunk');
+}
+async function getWav(parts) {
+  const bufs = await Promise.all(parts.map(p => fetch(p).then(r => { if (!r.ok) throw new Error(p); return r.arrayBuffer() })));
+  if (bufs.length === 1) return new Uint8Array(bufs[0]);
+  const d0 = wavDataOffset(bufs[0]), datas = bufs.map(b => new Uint8Array(b, wavDataOffset(b)));
+  const total = datas.reduce((n, x) => n + x.length, 0), out = new Uint8Array(d0 + total);
+  out.set(new Uint8Array(bufs[0], 0, d0)); let o = d0; datas.forEach(x => { out.set(x, o); o += x.length });
+  const v = new DataView(out.buffer); v.setUint32(4, out.length - 8, true); v.setUint32(d0 - 4, total, true);
+  return out;
+}
+if ($('#dlBtn')) $('#dlBtn').onclick = async () => {
+  const btn = $('#dlBtn'), msg = $('#dlMsg');
+  const say = o => { msg.innerHTML = T(o) };
+  btn.disabled = true; say({ ja: '準備しています…（少し時間がかかります）', zh: '正在准备…（需要一点时间）' });
+  try {
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (!dl) { say({ ja: 'この画面ではダウンロードできません。claude.ai でページを開くか、先生に聞いてください。', zh: '这个画面无法下载。请在 claude.ai 打开这个页面，或者问老师。' }); return }
+    if (!window.JSZip) await new Promise((ok, ng) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload = ok; s.onerror = ng; document.head.appendChild(s) });
+    const out = new JSZip(), dir = 'doppler-lesson-ST/01_素材_source/';
+    for (const f of DL_FILES) out.file(dir + f.name, await getWav(f.parts));
+    const blob = await out.generateAsync({ type: 'blob', compression: 'STORE' });
+    await dl.save({ filename: 'doppler-lesson-ST.zip', data: blob });
+    say({ ja: 'ダウンロードしました。解凍すると「doppler-lesson-ST」フォルダーができます。', zh: '已下载。解压后会得到「doppler-lesson-ST」文件夹。' });
+  } catch (e) {
+    if (e && e.code === 'declined') say({ ja: 'キャンセルしました。もう一度押せばダウンロードできます。', zh: '已取消。再按一次就可以下载。' });
+    else say({ ja: 'ダウンロードできませんでした。もう一度試すか、先生に聞いてください。', zh: '下载失败。请再试一次，或者问老师。' });
+  } finally { btn.disabled = false }
+};
+
+/* ---------- sound library ---------- */
+const sounds = [
+  { id: '00_ambient_cosmic', wav: '00_ambient_cosmic_宇宙環境音.wav', len: '90s', wide: true,
+    name: { ja: '宇宙の環境音（静か・空灵）', zh: '宇宙环境音（安静·空灵）' },
+    note: { ja: '低い5度の持続音、遠くの風のようなノイズ、ときどき鳴る鈴の余韻。背景用なのでピークは −12 dB と控えめ。ドップラーはかけず、そのまま土台として使います。', zh: '低沉的五度持续音、像远处风声的噪音、偶尔响起的铃声余韵。作为背景，峰值设得较低（−12 dB）。不加多普勒，直接作为底层使用。' } },
+  { id: '06_LR_check', wav: '06_左右チェック LR check', name: { ja: '左右チェック（L / R）', zh: '左右声道检查（L / R）' }, len: '10s',
+    note: { ja: 'ヘッドホンで聴こう。左だけ → 右だけ → 両方、の順に「ポン」と鳴ります。手順4で使います。', zh: '戴耳机听。按 只有左 → 只有右 → 两边 的顺序发出"咚"声。步骤4会用到。' } },
+  { id: '01_birds', ref: '01_birds_flyby', wav: '01_鳥 birds', name: { ja: '鳥のさえずり', zh: '鸟鸣' }, len: '8s',
+    note: { ja: '高い音の連続。速度 25 m/s で「頭の上をかすめて飛ぶ鳥」に。', zh: '连续的高音。速度 25 m/s 就像"掠过头顶的鸟"。' } },
+  { id: '02_wind', ref: '02_wind_whoosh', wav: '02_風 wind', name: { ja: '風（うなり入り）', zh: '风（带呼啸）' }, len: '10s',
+    note: { ja: 'ノイズの中に「ヒュー」という音程成分を入れてあるので、音程の変化も聞き取れます。', zh: '噪音中加入了"呼～"的音高成分，所以也能听出音高变化。' } },
+  { id: '03_bee', ref: '03_bee_straight', ref2: '03b_bee_circle', wav: '03_蜂 bee', name: { ja: '蜂の羽音（★最初の練習に）', zh: '蜜蜂嗡嗡声（★首次练习用）' }, len: '8s',
+    note: { ja: '音程が一定なので、ドップラーの変化がいちばん分かりやすい音。直線と円形の両方で使います。', zh: '音高恒定，多普勒的变化最容易听出来。直线和圆形都用它练习。' } },
+  { id: '04_cricket', ref: '04_cricket_fast', wav: '04_虫 cricket', name: { ja: '虫の声（コオロギ）', zh: '虫鸣（蟋蟀）' }, len: '8s',
+    note: { ja: '4.6 kHz の澄んだ音。スペクトル表示で音程の線がはっきり見えます。60 m/s で大げさに。', zh: '4.6 kHz 的清亮声音，在频谱显示中能清楚看到音高线。用 60 m/s 做夸张效果。' } },
+  { id: '05_cosmic_hum', ref: '05_cosmic_hum_flyby', wav: '05_宇宙ハム cosmic hum', name: { ja: '宇宙ハム（UFO）', zh: '宇宙嗡鸣（UFO）' }, len: '8s',
+    note: { ja: '環境音と同じ世界観の効果音。80 m/s で「UFO が飛び去る」劇的な変化に。', zh: '和环境音同一世界观的音效。80 m/s 做出"UFO 飞走"的戏剧性变化。' } },
+];
+const L = { src: { ja: '元の音', zh: '原声' }, after: { ja: '完成例', zh: '完成示例' }, circ: { ja: '円形', zh: '圆形' }, centered: { ja: '円形・中心', zh: '圆形·中心' }, mix: { ja: '完成ミックス例 45秒', zh: '完整混音示例 45秒' } };
+const grid = $('#soundGrid');
+for (const s of sounds) {
+  const el = document.createElement('div');
+  el.className = 'snd' + (s.wide ? ' wide' : '');
+  const btns = [`<button class="play" data-src="audio/${s.id}.mp3">${ICON}${T(L.src, 1)}</button>`];
+  if (s.ref) btns.push(`<button class="play after" data-src="audio/${s.ref}.mp3">${ICON}${T(L.after, 1)}</button>`);
+  if (s.ref2) btns.push(`<button class="play after" data-src="audio/${s.ref2}.mp3">${ICON}${T(L.circ, 1)}</button>`, `<button class="play after" data-src="audio/03c_bee_circle_centered.mp3">${ICON}${T(L.centered, 1)}</button>`);
+  if (s.wide) btns.push(`<button class="play after" data-src="audio/99_demo_mix.mp3">${ICON}${T(L.mix, 1)}</button>`);
+  el.innerHTML = s.wide
+    ? `<div style="display:grid;gap:8px"><h3>${T(s.name)}</h3><p>${T(s.note)}</p><div class="file">${s.wav} · ${s.len}</div></div><div class="row">${btns.join('')}</div>`
+    : `<h3>${T(s.name)}</h3><p>${T(s.note)}</p><div class="row">${btns.join('')}</div><div class="file">${s.wav} · ${s.len}</div>`;
+  grid.appendChild(el);
+}
+document.addEventListener('click', e => { const b = e.target.closest('.play[data-src]'); if (b && b.id !== 'thPlay') playAudio(b.dataset.src, b) });
+
+/* ---------- wavefront canvases ---------- */
+function css(v, el) { return getComputedStyle(el || document.documentElement).getPropertyValue(v).trim() }
+function fitCanvas(cv) { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d; const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); return [g, r.width, r.height] }
+// stylised: v/c = 0.45 so compression is visible
+function drawWaves(cv, tNorm, opts) {
+  const [g, w, h] = fitCanvas(cv);
+  const near = css('--near', cv), far = css('--far', cv), fg = css('--fg', cv), muted = css('--muted', cv), line = css('--line', cv);
+  g.clearRect(0, 0, w, h);
+  const y0 = h * (opts.pathY || .42), lx = w / 2, ly = h * .82;
+  const span = w * 1.1, sx = (u) => w / 2 + (u - .5) * span;
+  const ratio = .45, period = .045;
+  const x = sx(tNorm);
+  // emitted rings
+  for (let te = Math.max(0, tNorm - .5); te <= tNorm; te += period) {
+    const k = Math.round(te / period) * period; if (k > tNorm) continue;
+    const ex = sx(k), rad = (tNorm - k) * span / ratio;
+    const forward = ex < lx;
+    g.beginPath(); g.arc(ex, y0, rad, 0, Math.PI * 2);
+    g.strokeStyle = (ex < x - 1) ? (forward ? near : far) : muted;
+    g.globalAlpha = Math.max(0, .85 - (tNorm - k) * 2.2); g.lineWidth = 1.4; g.stroke();
+  }
+  g.globalAlpha = 1;
+  g.setLineDash([4, 5]); g.strokeStyle = line; g.beginPath(); g.moveTo(0, y0); g.lineTo(w, y0); g.stroke(); g.setLineDash([]);
+  // source
+  g.fillStyle = x < lx ? near : far; g.beginPath(); g.arc(x, y0, 7, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(x + 12, y0); g.lineTo(x + 22, y0); g.lineTo(x + 18, y0 - 4); g.moveTo(x + 22, y0); g.lineTo(x + 18, y0 + 4); g.strokeStyle = fg; g.lineWidth = 1.5; g.stroke();
+  // listener
+  g.fillStyle = fg; g.beginPath(); g.arc(lx, ly, 9, 0, Math.PI * 2); g.fill();
+  g.fillRect(lx - 12, ly - 2, 3, 6); g.fillRect(lx + 9, ly - 2, 3, 6);
+  if (opts.labels) { g.font = '12px ' + css('--f-mono'); g.fillStyle = muted; g.textAlign = 'center'; g.fillText('listener', lx, ly + 24) }
+}
+const heroCv = $('#heroCv'), thCv = $('#thCv');
+let t0 = performance.now(), thPlaying = false;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tick(now) {
+  const loop = ((now - t0) / 5200) % 1;
+  drawWaves(heroCv, reduce ? .42 : loop, { pathY: .4 });
+  let tn;
+  if (thPlaying && !audio.paused) tn = Math.min(1, audio.currentTime / 8);
+  else tn = reduce ? .4 : ((now - t0) / 8000) % 1;
+  drawWaves(thCv, tn, { pathY: .38, labels: true });
+  // physical readout: bee 195 Hz, v=40, passes 5 m in front at t=4 s
+  const t = tn * 8, xs = 40 * (t - 4), r = Math.hypot(xs, 5), cos = -xs / r;
+  const f = 195 * C / (C - 40 * cos), st = 12 * Math.log2(f / 195);
+  $('#thHz').textContent = f.toFixed(0) + ' Hz';
+  const chip = $('#thSt'); chip.textContent = (st >= 0 ? '+' : '') + st.toFixed(1) + ' st'; chip.className = 'chip ' + (st > .05 ? 'near' : st < -.05 ? 'far' : '');
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+$('#thPlay').onclick = (e) => { const b = e.currentTarget; if (thPlaying && !audio.paused) { stopAudio(); thPlaying = false; return } playAudio(b.dataset.src, b); thPlaying = true };
+
+/* ---------- mock screen language (modelled on Audition 2026, Japanese UI) ---------- */
+const U = {
+  ja: { app: 'Adobe Audition 2026', menus: ['ファイル', '編集', 'マルチトラック', 'クリップ', 'エフェクト', 'テンプレート', 'ビュー', 'ウィンドウ', 'ヘルプ'],
+    files: 'ファイル', tmplTab: 'テンプレート', colName: '名前 ↑', colDur: 'デュレーション', wtab: '波形', mtab: 'マルチトラック', editor: 'エディター', mixer: 'ミキサー', ws: 'デフォルト',
+    status: '48000 Hz • 16 ビット • ステレオ',
+    file: [['new', '新規', '▸ マルチトラックセッション… ⌘N'], ['open', '開く…', '⌘O'], ['', '追加して開く', '▸'], ['', '最近使用したファイルを開く', '▸'], '-', ['', '閉じる', '⌘W'], '-', ['save', '保存', '⌘S'], ['saveas', '別名で保存…', '⇧⌘S'], ['', '選択範囲を別名で保存…', '⌥⌘S'], '-', ['import', '読み込み', '▸ ファイル… ⌘I'], ['export', '書き出し', '▸ マルチトラックミックスダウン ▸ セッション全体…']],
+    eff: ['エフェクトラックを表示', '-', '位相反転', 'リバース', '無音', '生成>', '-', '振幅と圧縮>', 'ディレイとエコー>', '診断>', 'フィルターとイコライザ>', '変調>', 'ノイズリダクション / リストア>', 'リバーブ>', 'スペシャル>', 'ステレオイメージ>', 'タイムとピッチ>'], special: 'スペシャル',
+    spec: ['ディストーション…', 'ドップラーシフター（プロセス）…', 'ギタースイート…', 'マスタリング…', 'ラウドネスメーター…', 'ボーカル強調…'],
+    dlgT: 'エフェクト - ドップラーシフター', presets: 'プリセット：', def: '(デフォルト)', pathType: 'パスタイプ：',
+    dist: '開始距離', vel: '速度', from: '進入角度', front: '前側通過位置', right: '右側通過位置', rad: '半径', ang: '開始角度', cf: '前側中心位置', cr: '右側中心位置',
+    volBase: 'ボリューム調整の基準：', vDist: '距離', vDir: '方向', ql: '品質：', qv: '中品質', io: '入力: L, R | 出力: L, R', apply: '適用', close: '閉じる',
+    saveT: '別名で保存', fname: 'ファイル名：', loc: '場所：', fmt: '形式：', ok: 'OK', cancel: 'キャンセル',
+    nsT: '新規マルチトラックセッション', sname: 'セッション名：', folder: 'フォルダーの場所：', tmpl: 'テンプレート：', none: 'なし', sr: 'サンプルレート：', bd: 'ビット深度：', bdv: '32（浮動小数点）', mix: 'ミックス：', stereo: 'ステレオ',
+    exT: 'マルチトラックミックスダウンを書き出し', stype: 'サンプルタイプ：', stv: '48000 Hz ステレオ、16-bit', fset: '形式の設定：', fsetv: 'Wave 非圧縮, 16 ビット整数', mp3: 'MP3 オーディオ (*.mp3)', track: 'トラック', volume: 'ボリューム', sess: '宇宙の風景.sesx',
+    finder: ['開く', '新規タブで開く', '-', 'ゴミ箱に入れる', '-', '情報を見る', '名前を変更', '圧縮', '複製', 'エイリアスを作成'], copy: '作業用' },
+  en: { app: 'Adobe Audition 2026', menus: ['File', 'Edit', 'Multitrack', 'Clip', 'Effects', 'Template', 'View', 'Window', 'Help'],
+    files: 'Files', tmplTab: 'Templates', colName: 'Name ↑', colDur: 'Duration', wtab: 'Waveform', mtab: 'Multitrack', editor: 'Editor', mixer: 'Mixer', ws: 'Default',
+    status: '48000 Hz • 16-bit • Stereo',
+    file: [['new', 'New', '▸ Multitrack Session… ⌘N'], ['open', 'Open…', '⌘O'], ['', 'Open Append', '▸'], ['', 'Open Recent', '▸'], '-', ['', 'Close', '⌘W'], '-', ['save', 'Save', '⌘S'], ['saveas', 'Save As…', '⇧⌘S'], ['', 'Save Selection As…', '⌥⌘S'], '-', ['import', 'Import', '▸ File… ⌘I'], ['export', 'Export', '▸ Multitrack Mixdown ▸ Entire Session…']],
+    eff: ['Show Effects Rack', '-', 'Invert', 'Reverse', 'Silence', 'Generate>', '-', 'Amplitude and Compression>', 'Delay and Echo>', 'Diagnostics>', 'Filter and EQ>', 'Modulation>', 'Noise Reduction / Restoration>', 'Reverb>', 'Special>', 'Stereo Imagery>', 'Time and Pitch>'], special: 'Special',
+    spec: ['Distortion…', 'Doppler Shifter (process)…', 'Guitar Suite…', 'Mastering…', 'Loudness Meter…', 'Vocal Enhancer…'],
+    dlgT: 'Effect - Doppler Shifter', presets: 'Presets:', def: '(Default)', pathType: 'Path Type:',
+    dist: 'Starting Distance Away', vel: 'Velocity', from: 'Coming From', front: 'Passes In Front By', right: 'Passes On Right By', rad: 'Radius', ang: 'Starting Angle', cf: 'Center In Front By', cr: 'Center On Right By',
+    volBase: 'Adjust Volume Based On:', vDist: 'Distance', vDir: 'Direction', ql: 'Quality:', qv: 'Medium', io: 'Input: L, R | Output: L, R', apply: 'Apply', close: 'Close',
+    saveT: 'Save As', fname: 'File Name:', loc: 'Location:', fmt: 'Format:', ok: 'OK', cancel: 'Cancel',
+    nsT: 'New Multitrack Session', sname: 'Session Name:', folder: 'Folder Location:', tmpl: 'Template:', none: 'None', sr: 'Sample Rate:', bd: 'Bit Depth:', bdv: '32 (float)', mix: 'Mix:', stereo: 'Stereo',
+    exT: 'Export Multitrack Mixdown', stype: 'Sample Type:', stv: '48000 Hz Stereo, 16-bit', fset: 'Format Settings:', fsetv: 'Wave Uncompressed, 16-bit Integer', mp3: 'MP3 Audio (*.mp3)', track: 'Track', volume: 'Volume', sess: '宇宙の風景.sesx',
+    finder: ['Open', 'Open in New Tab', '-', 'Move to Trash', '-', 'Get Info', 'Rename', 'Compress', 'Duplicate', 'Make Alias'], copy: '作業用' },
+};
+let UIL = 'ja'; try { UIL = localStorage.getItem('doppler-ui') || 'ja' } catch (e) {}
+
+/* ---------- real screenshots (from the teacher's Audition 2026, Japanese UI) ---------- */
+const IMG = {
+  file: { src: 'screenshots/real_file_menu.jpg', w: 940, h: 1125 },
+  wave: { src: 'screenshots/real_waveform.jpg', w: 2000, h: 1095 },
+  eff: { src: 'screenshots/real_effects_menu.jpg', w: 2000, h: 1095 },
+  dlg: { src: 'screenshots/real_dialog.jpg', w: 1192, h: 942 },
+};
+const GRAPH = [50.3, 19.6, 36.9, 54.1];
+
+/* ---------- steps data ---------- */
+const P0 = { path: 'line', dist: 160, vel: 40, from: 270, front: 5, right: 0 };
+const ALL = ['amb', 'birds', 'bee', 'wind', 'hum'];
+const steps = [
+ { title: { ja: '元の音をバックアップする（コピーを作る）', zh: '备份原音频（复制一份）' },
+   ui: { ja: 'Finder › 右クリック › 複製', en: 'Finder › Right-click › Duplicate' }, keys: ['⌘D'],
+   do: { ja: '① Finder で <b>doppler-lesson-ST</b> フォルダーを開きます。<br>② <b>01_素材_source</b> フォルダーを右クリック（トラックパッドなら2本指でクリック）→「<b>複製</b>」。<br>③「01_素材_source のコピー」ができたら、右クリック →「名前を変更」で <b>作業用</b> にします。<br>④ これから Audition で開くのは、<b>「作業用」の中のファイルだけ</b>です。', zh: '① 在 Finder 中打开 <b>doppler-lesson-ST</b> 文件夹。<br>② 右键点击 <b>01_素材_source</b> 文件夹（触控板用两指点击）→「<b>複製（复制）</b>」。<br>③ 出现「01_素材_source のコピー」后，右键 →「名前を変更（重命名）」改为 <b>作業用</b>。<br>④ 之后在 Audition 里<b>只打开「作業用」里的文件</b>。' },
+   why: { ja: 'ドップラーシフターは<b>音のデータそのものを書き換える</b>エフェクトです。「適用」した後に、うっかり「保存」（⌘S）を押すと、元のファイルが上書きされて<b>二度と元の音に戻せません</b>。コピーで作業すれば、元の音はいつでも無事です。失敗しても「作業用」を消して、もう一度複製すればやり直せます。', zh: '多普勒频移是<b>直接改写音频数据本身</b>的效果。"应用"之后如果不小心按了「保存」（⌘S），原文件会被覆盖，<b>再也回不到原来的声音</b>。用复制品来练习，原声就永远安全。做坏了，删掉「作業用」再复制一份就能重来。' },
+   tip: { ja: '元の「01_素材_source」フォルダーは<b>開かない・触らない</b>。これがいちばん大事なルールです。', zh: '原来的「01_素材_source」文件夹<b>不打开、不动它</b>，这是最重要的规则。' },
+   s: { finder: 1, hl: '[data-m="fdup"]', after: { finder: 2, hl: '[data-m="fcopy"]' } } },
+ { title: { ja: '素材ファイルを開く', zh: '打开素材文件' },
+   ui: { ja: 'ファイル › 開く…', en: 'File › Open…' }, keys: ['⌘O', 'Ctrl+O'],
+   do: { ja: '画面いちばん上の「ファイル」をクリックし、「開く…」を選びます。出てきた窓で<b>「作業用」フォルダー</b>の <b>03_bee_蜂.wav</b> を選んで「開く」。', zh: '点击画面最上方的「ファイル（文件）」，选择「開く…（打开）」。在弹出的窗口中选择<b>「作業用」文件夹</b>里的 <b>03_bee_蜂.wav</b>，点「開く」。' },
+   why: { ja: '最初は音程がずっと一定の蜂の音で練習します。元の音程が動かないので、ドップラー効果による「上がって→下がる」変化だけがはっきり聞こえるからです。', zh: '先用音高始终不变的蜜蜂声练习。原声音高不动，多普勒带来的"先升高→再降低"的变化就能清楚地听出来。' },
+   img: { ...IMG.file, boxes: [{ r: [21.8, 0.2, 8.8, 2.3], t: '①', pos: 'r' }, { r: [22.3, 5.5, 38.7, 2.4], t: '② 開く…', pos: 'r' }] },
+   s: { menu: 'file', hl: '[data-m="open"]' } },
+ { title: { ja: '波形エディターで開いているか確認', zh: '确认在波形编辑器中' },
+   ui: { ja: '波形', en: 'Waveform' },
+   do: { ja: '左上のボタンが「<b>波形</b>」（青い文字）になっているか確認。なっていなければ「波形」をクリック。右下の表示が「<b>ステレオ</b>」で、波形が上下2段（L / R）ならOKです。', zh: '确认左上角的按钮是「<b>波形</b>」（蓝色文字）。如果不是就点击「波形」。右下角显示「<b>ステレオ（立体声）</b>」、波形上下两条（L / R）就可以了。' },
+   why: { ja: 'ドップラーシフターは名前に「（プロセス）」が付く“プロセスエフェクト”で、<b>波形エディター専用</b>です。マルチトラックの画面では使えません。また左右の移動を表現するには2チャンネル（ステレオ）が必要です。', zh: '多普勒频移名字后面带「（プロセス）」，是"处理类效果"，<b>只能在波形编辑器中使用</b>，在多轨画面里用不了。另外，要表现左右移动需要两个声道（立体声）。' },
+   tip: { ja: '「モノラル」と表示される場合：「編集 › サンプルタイプを変換…」でチャンネルを「ステレオ」に（練習用の音はすべてステレオです）。', zh: '显示「モノラル（单声道）」时：用「編集 › サンプルタイプを変換…」改为「ステレオ」（练习用的声音都是立体声）。' },
+   img: { ...IMG.wave, boxes: [{ r: [0.6, 2.3, 3.6, 2.3], t: '① 波形', pos: 'b' }, { r: [75.6, 97.9, 9, 1.9], t: '② ステレオ', pos: 't' }] },
+   s: { hl: '[data-m="wtab"]', hl2: '[data-m="status"]' } },
+ { title: { ja: 'L と R（左右のチャンネル）を聴き分ける', zh: '分辨 L 和 R（左右声道）' },
+   ui: { ja: '波形の右端の L / R', en: 'L / R at the right edge of the waveform' }, keys: ['Space'],
+   do: { ja: '① 波形の<b>右端</b>にある小さな「<b>L</b>」「<b>R</b>」の文字を見つけます。<b>上の段＝L（Left・左）</b>、<b>下の段＝R（Right・右）</b>です。<br>② <b>ヘッドホン</b>をつけます（L と書いてある方を左耳に）。<br>③ 「作業用」の <b>06_LR_check_左右チェック.wav</b> を開いて（手順2と同じ）、<b>スペース</b>キーで再生します。<br>・最初の3秒：<b>左耳だけ</b>から「ポン」<br>・次の3秒：<b>右耳だけ</b>から少し高い「ポン」<br>・最後の3秒：<b>両方の耳</b>から<br>波形も、上の段だけ → 下の段だけ → 両方、の順に出ているのを確かめよう。<br>④ 確認できたら、左の「ファイル」パネルで <b>03_bee_蜂.wav</b> をダブルクリックして戻ります。', zh: '① 找到波形<b>右端</b>的小字「<b>L</b>」「<b>R</b>」。<b>上面一条＝L（Left・左）</b>，<b>下面一条＝R（Right・右）</b>。<br>② 戴上<b>耳机</b>（标着 L 的一边戴在左耳）。<br>③ 打开「作業用」里的 <b>06_LR_check_左右チェック.wav</b>（和步骤2一样），按<b>空格</b>键播放：<br>・前3秒：<b>只有左耳</b>听到"咚"<br>・接下来3秒：<b>只有右耳</b>听到稍高的"咚"<br>・最后3秒：<b>两只耳朵</b>都听到<br>同时看波形：先只有上面一条有，再只有下面一条有，最后两条都有。<br>④ 确认后，在左侧「ファイル」面板双击 <b>03_bee_蜂.wav</b> 回到原来的文件。' },
+   why: { ja: 'ステレオの音は、<b>左耳用（L）と右耳用（R）の2つの音</b>でできています。左右で音の大きさを変えると、音が左や右から聞こえます。ドップラーシフターは、この L と R のバランスを少しずつ変えて、音を<b>「左から右へ」動かします</b>。L と R の意味を知っておくと、あとで「音が本当に左から右へ移動したか」を、耳と波形の両方で確かめられます。', zh: '立体声由<b>给左耳的（L）和给右耳的（R）两个声音</b>组成。改变左右的音量，声音就会从左边或右边传来。多普勒频移就是一点点改变 L 和 R 的平衡，让声音<b>"从左向右"移动</b>。知道了 L 和 R 的意思，之后就能用耳朵和波形两方面确认"声音是不是真的从左移到了右"。' },
+   tip: { ja: '左右が逆に聞こえたら、ヘッドホンの向きが逆かもしれません。スピーカーだと左右が分かりにくいので、必ずヘッドホンで。', zh: '如果左右听反了，可能是耳机戴反了。用音箱很难分辨左右，一定要用耳机。' },
+   img: { ...IMG.wave, boxes: [{ r: [21.2, 15.3, 48.5, 33.5], t: 'L（左）＝上の段', pos: 'in' }, { r: [21.2, 50.2, 48.5, 33.5], t: 'R（右）＝下の段', pos: 'in' }, { r: [71.9, 31, 1.7, 2.8], t: 'L', pos: 'r' }, { r: [71.9, 65.6, 1.7, 2.8], t: 'R', pos: 'r' }] },
+   s: { hl: '.chl' }, audio: 'audio/06_LR_check.mp3' },
+ { title: { ja: '全体を選択する', zh: '全选' },
+   ui: { ja: '編集 › 選択 › すべてを選択', en: 'Edit › Select › Select All' }, keys: ['⌘A', 'Ctrl+A'],
+   do: { ja: '波形の上を1回クリックしてから、<b>⌘（command）+ A</b>。波形全体が白っぽく明るくなります。', zh: '先在波形上点一下，再按 <b>⌘（command）+ A</b>。整段波形会变亮。' },
+   why: { ja: 'エフェクトは<b>選択した範囲だけ</b>にかかります。ファイル全体で1回「通り過ぎる」動きを作りたいので、全体を選びます。一部だけ選ぶと、その短い区間の中だけで通過が起きます。', zh: '效果<b>只作用于选中的范围</b>。我们要让整个文件完成一次"飞过"，所以全选。如果只选一部分，飞过只会发生在那一小段里。' },
+   img: { ...IMG.wave, boxes: [{ r: [21.2, 15.3, 48.5, 68.8], t: 'クリック → ⌘A', pos: 'in' }] },
+   s: { sel: true, hl: '[data-m="wave"]', kbd: '⌘ + A' } },
+ { title: { ja: 'ドップラーシフターを開く', zh: '打开多普勒频移' },
+   ui: { ja: 'エフェクト › スペシャル › ドップラーシフター（プロセス）…', en: 'Effects › Special › Doppler Shifter (process)…' },
+   do: { ja: '画面いちばん上の「<b>エフェクト</b>」をクリック → 下の方の「<b>スペシャル</b>」にマウスを乗せる → 右に出たリストの「<b>ドップラーシフター（プロセス）…</b>」をクリック。', zh: '点击画面最上方的「<b>エフェクト（效果）</b>」→ 鼠标移到下方的「<b>スペシャル（特殊）</b>」→ 在右侧出现的列表中点击「<b>ドップラーシフター（プロセス）…</b>」。' },
+   why: { ja: '空間や動きを作る特殊な効果は「スペシャル」にまとまっています。「（プロセス）」は、リアルタイムで重ねる効果ではなく、<b>音のデータそのものを書き換える</b>処理という意味です。だから手順1でバックアップを作りました。', zh: '制造空间和运动的特殊效果都归在「スペシャル」里。「（プロセス）」表示它不是实时叠加的效果，而是<b>直接改写音频数据本身</b>。所以第1步要先做备份。' },
+   img: { ...IMG.eff, boxes: [{ r: [25.4, 40.3, 16.9, 2.3], t: '① スペシャル', pos: 'l' }, { r: [42.4, 42.6, 10.8, 2.4], t: '② ドップラーシフター', pos: 'b' }] },
+   s: { sel: true, menu: 'effects', hl: '[data-m="doppler"]' } },
+ { title: { ja: 'ダイアログの見方を知る', zh: '认识对话框' },
+   ui: { ja: 'プリセット：(デフォルト)', en: 'Presets: (Default)' },
+   do: { ja: 'プリセットは「(デフォルト)」のまま。<b>右のグラフは真上から見た地図</b>です。<br>・線が交わる中心＝聞き手（自分）<br>・上（0°）＝自分の前、右（90°）＝右、左（270°）＝左<br>・青い線＝音が動く道、矢印＝進む向き<br>左側の青い数字で、道と速さを決めます。', zh: '预设保持「(デフォルト)」。<b>右边的图是从正上方俯视的地图</b>：<br>・两条线交叉的中心＝听者（自己）<br>・上（0°）＝自己的前方，右（90°）＝右边，左（270°）＝左边<br>・蓝线＝声音移动的路径，箭头＝前进方向<br>用左侧的蓝色数字来决定路径和速度。' },
+   why: { ja: '数字だけで考えると混乱します。グラフで「どこを、どちら向きに通るか」を目で確認しながら設定するのが近道です。「上から見た地図」だと思って見てみよう。', zh: '只看数字容易混乱。一边看图确认"从哪里、朝哪个方向经过"一边设置，是最快的方法。把它当成"俯视地图"来看就好。' },
+   tip: { ja: 'このままの数字（デフォルト）で ▶ を押すだけでも効果は聞けます。まず一度聞いてから数字を変えるのもおすすめです。', zh: '保持默认数字直接按 ▶ 也能听到效果。建议先听一次再改数字。' },
+   img: { ...IMG.dlg, boxes: [{ r: GRAPH, t: '真上から見た地図（中心＝自分）', pos: 'in' }] },
+   s: { sel: true, dlg: true, p: P0, hl: '[data-m="graph"]' } },
+ { title: { ja: 'パスタイプ：直線', zh: '路径类型：直线' },
+   ui: { ja: 'パスタイプ：● ⟶（直線）', en: 'Path Type: Straight Line' },
+   do: { ja: '「パスタイプ」の、<b>矢印 ⟶ の左の丸</b>を選びます（黒丸になっていれば選ばれています）。', zh: '在「パスタイプ（路径类型）」中，选择<b>箭头 ⟶ 左边的圆点</b>（变成实心圆就表示选中了）。' },
+   why: { ja: '直線は「目の前を1回通り過ぎる」動き（車・飛ぶ鳥・電車）。ドップラー効果のいちばん基本の形なので、まず直線で理解してから円形（右側の ○ ↻）に進みます。', zh: '直线是"从面前经过一次"的运动（汽车、飞鸟、火车），是多普勒效应最基本的形式。先用直线理解，再进入圆形（右边的 ○ ↻）。' },
+   img: { ...IMG.dlg, boxes: [{ r: [16.6, 19.4, 8.6, 4.3], t: '● ⟶ 直線', pos: 'r' }] },
+   s: { sel: true, dlg: true, p: P0, hl: '[data-m="path"]' } },
+ { title: { ja: '開始距離と速度を決める', zh: '设置起始距离和速度' },
+   ui: { ja: '開始距離 160 m ・ 速度 40 m/s', en: 'Starting Distance Away 160 m · Velocity 40 m/s' },
+   do: { ja: '「開始距離」を 100 → <b>160</b>、「速度」を 50 → <b>40</b> に。<b>青い数字をクリック</b>すると入力でき、Return キーで確定します（数字を左右にドラッグしても変わります）。', zh: '「開始距離（起始距离）」100 → <b>160</b>，「速度」50 → <b>40</b>。<b>点击蓝色数字</b>即可输入，按 Return 键确定（左右拖动数字也能改）。' },
+   why: { ja: '<b>速度が大きいほど音程の変化が大きく</b>なります。40 m/s（時速約144 km）で約4半音動くので、教室のスピーカーでもはっきり聞こえます。<br>開始距離 ÷ 速度 ≒ 目の前に来るまでの時間。160 ÷ 40 ＝ 4秒で、8秒の素材のちょうど真ん中で通過します。', zh: '<b>速度越大，音高变化越大</b>。40 m/s（约时速144公里）大约变化4个半音，在教室音箱上也能听得很清楚。<br>起始距离 ÷ 速度 ≈ 到达面前所需时间。160 ÷ 40 ＝ 4秒，正好在8秒素材的中间经过。' },
+   tip: { ja: '通過の位置がずれたら開始距離で調整します（大きく→遅く通過、小さく→早く通過）。', zh: '经过的时刻不对时用起始距离调整（变大→更晚经过，变小→更早经过）。' },
+   img: { ...IMG.dlg, boxes: [{ r: [11.2, 28.2, 15.2, 3.6], t: '100 → 160', pos: 'r' }, { r: [11.2, 34.6, 15.2, 3.6], t: '50 → 40', pos: 'r' }] },
+   s: { sel: true, dlg: true, p: P0, hl: '[data-m="r-dist"]', hl2: '[data-m="r-vel"]' } },
+ { title: { ja: '進入角度・前側・右側を決める', zh: '设置进入角度、前侧、右侧' },
+   ui: { ja: '進入角度 270° ・ 前側通過位置 5 m ・ 右側通過位置 0 m', en: 'Coming From 270° · Passes In Front By 5 m · Passes On Right By 0 m' },
+   do: { ja: '「進入角度」<b>270</b>（デフォルトの 275 のままでもOK）、「前側通過位置」25 → <b>5</b>、「右側通過位置」<b>0</b>。右のグラフで、青い線が<b>左から右へ、中心のすぐ上を</b>通っていれば正解です。', zh: '「進入角度（进入角度）」<b>270</b>（保持默认的 275 也可以），「前側通過位置（前侧经过位置）」25 → <b>5</b>，「右側通過位置（右侧经过位置）」<b>0</b>。右边的图中，蓝线<b>从左到右、紧贴中心上方</b>经过就对了。' },
+   why: { ja: '進入角度は「どちらから来るか」。<b>270°＝左</b>から来て右へ抜けるので、ステレオで「左→右」の移動がよく分かります。前側通過位置は<b>どれだけ近くを通るか</b>：小さいほど音量の山が急で、音程が一瞬で切り替わって迫力が出ます。大きいほど変化がゆるやか（遠くを通る感じ）。', zh: '进入角度＝"从哪个方向来"。<b>270°＝从左边</b>进来、向右穿出，立体声里"左→右"的移动最明显。前侧经过位置＝<b>离你多近经过</b>：越小，音量峰越陡，音高瞬间切换，更有冲击力；越大变化越平缓（像从远处经过）。' },
+   img: { ...IMG.dlg, boxes: [{ r: [11.2, 41, 15.2, 3.6], t: '270（275のままでもOK）', pos: 'r' }, { r: [7.6, 47.3, 18.8, 3.6], t: '25 → 5', pos: 'r' }, { r: [7.6, 53.6, 18.8, 3.6], t: '0', pos: 'r' }, { r: GRAPH, t: '左から右へ', pos: 'in' }] },
+   s: { sel: true, dlg: true, p: P0, hl: '[data-m="r-from"]', hl2: '[data-m="r-front"]' } },
+ { title: { ja: 'ボリュームと品質の設定', zh: '音量与品质设置' },
+   ui: { ja: 'ボリューム調整の基準：☑距離 ☑方向 ・ 品質', en: 'Adjust Volume Based On: ☑Distance ☑Direction · Quality' },
+   do: { ja: '「ボリューム調整の基準」の<b>距離</b>と<b>方向</b>の両方に<b>チェック</b>が入っているか確認。「品質」は試聴中は「中品質」のままでOK。最後に仕上げるときは、より高い品質を選びます。', zh: '确认「ボリューム調整の基準（音量调整基准）」里的<b>距離（距离）</b>和<b>方向</b>都<b>打了勾</b>。「品質（品质）」试听时保持「中品質」就行，最后完成时选更高的品质。' },
+   why: { ja: '<b>距離</b>：遠い＝小さい、近い＝大きい。<b>方向</b>：左にあると左から、右にあると右から聞こえる。この2つで「近づいて通り過ぎる」感じが本物らしくなります。品質は高いほど音がきれいですが、処理に時間がかかります。', zh: '<b>距离</b>：远＝小声，近＝大声。<b>方向</b>：在左边就从左边听到，在右边就从右边听到。有了这两个，"靠近再经过"的感觉才真实。品质越高声音越干净，但处理越慢。' },
+   img: { ...IMG.dlg, boxes: [{ r: [4.3, 61, 22, 13.6], t: '☑ 距離　☑ 方向', pos: 'r' }, { r: [4.3, 75.5, 30, 4.8], t: '品質', pos: 'r' }] },
+   s: { sel: true, dlg: true, p: P0, hl: '[data-m="quality"]' } },
+ { title: { ja: 'プレビューで聴いて比べる', zh: '预览试听并对比' },
+   ui: { ja: '電源 ・ ▶ 再生 ・ ループ', en: 'Power · ▶ Play · Loop' },
+   do: { ja: '図の <b>① 電源</b>／<b>② 再生</b>／<b>③ ループ</b>。<br>窓の左下の <b>② ▶</b> で試聴。その右の<b>③ ループ</b>ボタンを押すと、繰り返し再生しながら数字を変えられます。いちばん左の緑の<b>① 電源ボタン</b>でエフェクトのオン／オフを切り替えて、元の音と比べます。', zh: '图中 <b>① 电源</b>／<b>② 播放</b>／<b>③ 循环</b>。<br>点窗口左下角的 <b>② ▶</b> 试听。按下右边的<b>③ 循环</b>按钮，可以一边循环播放一边改数字。用最左边绿色的<b>① 电源按钮</b>切换效果开/关，与原声对比。' },
+   why: { ja: '「適用」する前に耳で確かめるのが鉄則です。オン／オフ比較（A/B比較）をすると、違い＝ドップラー効果の部分だけを聞き取れます。ヘッドホンだと左右の移動もよく分かります。', zh: '按"適用（应用）"之前先用耳朵确认，这是铁律。开/关对比（A/B 对比）可以只听出差别，也就是多普勒效果本身。戴耳机还能清楚听到左右移动。' },
+   img: { ...IMG.dlg, boxes: [{ r: [2.2, 92.8, 3.6, 5], t: '①', pos: 'tc' }, { r: [7.9, 92.8, 3.2, 5], t: '②', pos: 'tc' }, { r: [13.2, 92.8, 3.6, 5], t: '③', pos: 'tc' }] },
+   s: { sel: true, dlg: true, p: P0, play: true, hl: '[data-m="play"]' }, audio: 'audio/03_bee_straight.mp3' },
+ { title: { ja: '適用する', zh: '应用' },
+   ui: { ja: '適用', en: 'Apply' },
+   do: { ja: '右下の「<b>適用</b>」をクリック。窓が閉じて、波形の形が<b>中央が大きく、両端が小さく</b>変わります。', zh: '点击右下角的「<b>適用（应用）</b>」。窗口关闭，波形变成<b>中间大、两端小</b>。' },
+   why: { ja: '波形の山が真ん中にあれば「真ん中で目の前を通った」証拠。上下（L / R）の山の位置が少しずれているのは、左から右へ動いたからです。<b>この時点ではまだ画面の中だけ</b>が変わった状態で、ファイルは変わっていません。次の手順で必ず「別名で保存」します。失敗したら ⌘Z で戻せます。', zh: '波形峰在中间，就证明"在中间时刻从面前经过"。上下两条（L / R）的峰位置略有错开，是因为声音从左移到了右。<b>此时只是画面里的声音变了</b>，文件本身还没变。下一步一定要「別名で保存（另存为）」。做错了可以用 ⌘Z 撤销。' },
+   img: { ...IMG.dlg, boxes: [{ r: [84, 93.2, 13.8, 4.4], t: '適用', pos: 'tr' }] },
+   s: { sel: true, dlg: true, p: P0, hl: '[data-m="apply"]', after: { applied: true, dlg: false, hl: '[data-m="wave"]' } } },
+ { title: { ja: 'すぐに「別名で保存」する（⌘S は押さない）', zh: '马上「另存为」（不要按 ⌘S）' },
+   ui: { ja: 'ファイル › 別名で保存…', en: 'File › Save As…' }, keys: ['⇧⌘S'],
+   do: { ja: '「ファイル › <b>別名で保存…</b>」（shift + ⌘ + S）。窓が出たら、次のとおりになっているか確認します：<br>① ファイル名：<b>03_bee_doppler.wav</b><br>② 場所：<b>作業用</b> フォルダー（違うときは「参照…」で選ぶ）<br>③ 形式：<b>Wave PCM (*.wav, *.bwf, *.rf64, *.amb)</b><br>④ サンプルタイプ：<b>48000 Hz ステレオ、16-bit</b>（元の音と同じなので「変更…」は押さない）<br>⑤ 形式の設定：<b>Wave 非圧縮／16 ビット整数</b>（これも「変更…」は押さない）<br>「マーカーと他のメタデータを含める」はチェックのままでOK。最後に <b>OK</b>。<br>保存すると、エディターの名前が「03_bee_doppler.wav」に変わります。', zh: '「ファイル › <b>別名で保存…（另存为）</b>」（shift + ⌘ + S）。弹出窗口后，确认以下设置：<br>① ファイル名（文件名）：<b>03_bee_doppler.wav</b><br>② 場所（位置）：<b>作業用</b> 文件夹（不对的话用「参照…（浏览）」选择）<br>③ 形式（格式）：<b>Wave PCM (*.wav, *.bwf, *.rf64, *.amb)</b><br>④ サンプルタイプ（采样类型）：<b>48000 Hz ステレオ、16-bit</b>（和原声一样，不要点「変更…」）<br>⑤ 形式の設定（格式设置）：<b>Wave 非圧縮（不压缩）／16 ビット整数（16位整数）</b>（也不要点「変更…」）<br>「マーカーと他のメタデータを含める（包含标记和其他元数据）」保持勾选即可。最后点 <b>OK</b>。<br>保存后，编辑器上的名字会变成「03_bee_doppler.wav」。' },
+   why: { ja: '「<b>保存</b>」（⌘S）は、今開いているファイル＝<b>元の 03_bee_蜂.wav に上書き</b>します。「<b>別名で保存</b>」なら新しいファイルが作られ、元の音はそのまま残ります。<br><br><b>どうしてこの設定？</b><br>・<b>WAV（非圧縮）</b>：音を圧縮しないので音質が落ちません。MP3 は保存するたびに少しずつ音質が落ちるので、作業の途中では使いません（MP3 は最後の書き出しだけ）。<br>・<b>48000 Hz</b>：1秒間に音を記録する回数。元の音と同じにすると変換が起きず、あとでマルチトラック（48000 Hz）に並べるときもそろいます。<br>・<b>ステレオ</b>：モノラルにすると L と R が1つにまとまり、せっかく作った左右の動きが消えてしまいます。<br>・<b>16 ビット</b>：音の大きさを記録する細かさ。CD と同じ品質で、この授業には十分です。元と同じにしておけば迷いません。', zh: '「<b>保存</b>」（⌘S）会<b>覆盖当前打开的文件，也就是原来的 03_bee_蜂.wav</b>。「<b>別名で保存</b>」会新建一个文件，原声保持不变。<br><br><b>为什么这样设置？</b><br>・<b>WAV（不压缩）</b>：声音不压缩，音质不会下降。MP3 每保存一次音质就会下降一点，所以制作过程中不用它（MP3 只在最后导出时用）。<br>・<b>48000 Hz</b>：每秒记录声音的次数。和原声一样就不会发生转换，之后放进多轨（48000 Hz）时也一致。<br>・<b>立体声</b>：如果改成单声道，L 和 R 会合成一个，辛苦做出的左右移动就没了。<br>・<b>16 位</b>：记录音量的精细程度。和 CD 品质相同，这节课完全够用。和原声保持一致就不会混乱。' },
+   tip: { ja: '③〜⑤ は、元の音と同じ設定が最初から入っています。<b>WAV・48000 Hz・ステレオ・16-bit</b> になっていれば、そのまま OK で大丈夫。<br>うっかり ⌘S を押してしまったら：「作業用」フォルダーを消して、「01_素材_source」をもう一度複製すれば元に戻せます。', zh: '③〜⑤ 一开始就是和原声相同的设置。只要显示 <b>WAV・48000 Hz・立体声・16-bit</b>，直接点 OK 就行。<br>不小心按了 ⌘S：删掉「作業用」文件夹，再复制一次「01_素材_source」就能恢复。' },
+   img: { src: 'screenshots/real_save_as.jpg', w: 910, h: 614, boxes: [{ r: [21.2, 14.7, 53.2, 5.7], t: '①', pos: 'ir' }, { r: [21.2, 23.3, 53.2, 6], t: '②', pos: 'ir' }, { r: [21.2, 32.1, 53.2, 5.9], t: '③', pos: 'ir' }, { r: [21.2, 41.2, 53.2, 5.9], t: '④', pos: 'ir' }, { r: [21.2, 50.6, 53.2, 21.8], t: '⑤', pos: 'ir' }, { r: [79.3, 90.1, 17.4, 6], t: 'OK', pos: 't' }] },
+   s: { applied: true, menu: 'file', hl: '[data-m="saveas"]', kbd: 'shift + ⌘ + S', after: { menu: null, save: true, hl: '[data-m="savebtn"]' } } },
+ { title: { ja: 'スペクトル表示で「目で」確認', zh: '用频谱显示"看"效果' },
+   ui: { ja: 'ビュー › スペクトル周波数表示を表示', en: 'View › Show Spectral Frequency Display' }, keys: ['⇧D'],
+   do: { ja: 'shift キーを押しながら D を押すと、波形の下に<b>スペクトル表示</b>（紫・赤・黄色の図）が出ます。もう一度 shift + D で消えます。<br><br><b>図の見方</b><br>・<b>横＝時間</b>：左から右へ進みます（上の波形と同じ）。<br>・<b>縦＝音の高さ</b>：右の数字（Hz）が大きいほど高い音。<br>・<b>色＝音の大きさ</b>：黒＝音なし → 紫 → 赤 → <b>黄色＝いちばん大きい</b>。<br>・横に何本も並んだ細いしま模様は、蜂の「ブーン」の中に入っている、たくさんの高さの音です。<br><br><b>ここを見よう</b><br>① 通過する前：しま模様の<b>上のふちが高い</b><br>② 通過した瞬間（黄色いところ）：上のふちが<b>ストンと下がる</b><br>③ 通過した後：上のふちが<b>低いまま</b><br>この<b>段差</b>が、ドップラー効果で音が「高い → 低い」に変わったしるしです。', zh: '按住 shift 键再按 D，波形下方会出现<b>频谱显示</b>（紫、红、黄色的图）。再按一次 shift + D 就会关闭。<br><br><b>怎么看这张图</b><br>・<b>横向＝时间</b>：从左向右推进（和上面的波形一样）。<br>・<b>纵向＝音高</b>：右边的数字（Hz）越大，声音越高。<br>・<b>颜色＝音量</b>：黑＝没有声音 → 紫 → 红 → <b>黄＝最响</b>。<br>・横着排了很多条的细条纹，是蜂鸣"嗡～"里包含的许多不同高度的声音。<br><br><b>看这里</b><br>① 经过之前：条纹的<b>上边缘比较高</b><br>② 经过的瞬间（黄色的地方）：上边缘<b>一下子掉下来</b><br>③ 经过之后：上边缘<b>一直比较低</b><br>这个<b>台阶</b>，就是多普勒效应让声音从"高 → 低"的证据。' },
+   why: { ja: '耳では「なんとなく低くなった」としか感じなくても、スペクトル表示なら<b>音の高さの変化を形で</b>確かめられます。黄色く明るいところは音がいちばん大きい、つまり<b>音がいちばん近くを通った瞬間</b>です。上の波形の山と同じ時間にあることも確かめてみよう。', zh: '即使耳朵只觉得"好像变低了"，在频谱显示里也能<b>用形状确认音高的变化</b>。黄色明亮的地方声音最响，也就是<b>声音离你最近、从面前经过的瞬间</b>。也确认一下，它和上面波形的峰是不是在同一个时间。' },
+   tip: { ja: 'しま模様が細かくて見にくいときは、上の段（L）だけ見ればOK。下の段（R）も同じ形です。', zh: '条纹太细看不清时，只看上面一条（L）就行，下面一条（R）形状是一样的。' },
+   s: { applied: true, saved: true, spec: true, hl: '[data-m="wave"]', kbd: 'shift + D' } },
+ { title: { ja: '円形パスを試す', zh: '尝试圆形路径' },
+   ui: { ja: 'パスタイプ：● ↻（円形）', en: 'Path Type: Circular' },
+   do: { ja: '「作業用」の <b>03_bee_蜂.wav</b> をもう一度開き（手順2）、手順6〜7でドップラーシフターを開きます。<br>「パスタイプ」で<b>右側の ● ↻</b>（円形）を選ぶと、項目が円形用に変わります。次の数字を入れます：<br>・半径：<b>6</b> m（円の大きさ）<br>・速度：<b>20</b> m/s<br>・開始角度：<b>270</b>°（左からスタート。そのままでOK）<br>・前側中心位置：<b>8</b> m（円の中心を、自分の 8 m 前に置く）<br>・右側中心位置：<b>0</b> m<br>グラフの下に「サウンドが <b>約1.9 秒ごとに 1 周</b>」と出れば正解。8秒の音で約4周、まわりを飛び回ります。<br>適用したら、<b>別名で保存</b>で <b>03_bee_circle.wav</b> として保存。', zh: '再次打开「作業用」里的 <b>03_bee_蜂.wav</b>（步骤2），按步骤6〜7打开多普勒频移。<br>在「パスタイプ」中选<b>右边的 ● ↻</b>（圆形），项目会变成圆形专用的。输入以下数字：<br>・半径：<b>6</b> m（圆的大小）<br>・速度：<b>20</b> m/s<br>・開始角度（起始角度）：<b>270</b>°（从左边开始，保持不变即可）<br>・前側中心位置（前侧圆心位置）：<b>8</b> m（把圆心放在自己前方 8 m）<br>・右側中心位置（右侧圆心位置）：<b>0</b> m<br>图下方显示「サウンドが <b>约1.9 秒ごとに 1 周</b>」（声音每约1.9秒转一圈）就对了。8秒的声音大约绕4圈。<br>应用后用<b>別名で保存</b>保存为 <b>03_bee_circle.wav</b>。' },
+   why: { ja: '円形は「周りを飛び回る」動き。円の中心を自分から離すと、近づく→離れるを繰り返して音程がうねります。<b>比較実験</b>：前側中心位置を <b>0</b> にして、円の中心を自分の位置にすると、距離が変わらないので音程は変わらず、ぐるぐる回るだけ。「ドップラー効果は<b>距離が変わる速さ</b>で起きる」ことを体験できます。', zh: '圆形是"绕着飞"的运动。圆心离开自己时，声音反复靠近→远离，音高随之起伏。<b>对比实验</b>：把前側中心位置设为 <b>0</b>，让圆心就在自己的位置，距离不变，音高也不变，只是绕圈。可以亲身体会"多普勒效应由<b>距离变化的速度</b>产生"。' },
+   tip: { ja: '円形にすると、<b>直線で使った数字がそのまま残っている</b>ことがあります（例：開始距離 240 → 半径 240）。半径が大きすぎると1周に何十秒もかかり、ほとんど動きません。<b>5つの数字を全部入れ直そう</b>。', zh: '切换到圆形时，<b>直线用过的数字可能会原样留着</b>（例如：起始距离 240 → 半径 240）。半径太大，转一圈要几十秒，几乎听不出移动。<b>5个数字都要重新输入</b>。' },
+   img: { src: 'screenshots/real_circle.jpg', w: 1186, h: 940, boxes: [{ r: [31, 19.3, 7.6, 3.8], t: '● ↻ 円形', pos: 'r' }, { r: [7.4, 27.9, 18.8, 3.6], t: '240 → 6', pos: 'r' }, { r: [7.4, 34.3, 18.8, 3.6], t: '60 → 20', pos: 'r' }, { r: [7.4, 40.6, 18.8, 3.6], t: '270（そのまま）', pos: 'r' }, { r: [7.4, 47, 18.8, 3.6], t: '3 → 8', pos: 'r' }, { r: [7.4, 53.4, 18.8, 3.6], t: '0', pos: 'r' }, { r: [50.2, 74.3, 25.6, 3.2], t: '約1.9 秒ごとに 1 周 になればOK', pos: 'b' }] },
+   s: { sel: true, dlg: true, p: { path: 'circle', radius: 6, vel: 20, ang: 270, cfront: 8, cright: 0 }, hl: '[data-m="path"]', hl2: '[data-m="graph"]' }, audio: 'audio/03b_bee_circle.mp3' },
+
+ // ---- part 2: multitrack ----
+ { part2: true, title: { ja: '他の効果音も同じように加工する', zh: '用同样方法处理其他音效' },
+   ui: { ja: '手順2〜14のくり返し', en: 'Repeat steps 2–14' },
+   do: { ja: '「作業用」の鳥・風・宇宙ハムも、手順2〜14と同じ流れで加工し、<b>別名で保存</b>します：<br><b>01_birds_doppler.wav</b>（速度25・前側4）<br><b>02_wind_doppler.wav</b>（速度30・前側2）<br><b>05_hum_doppler.wav</b>（速度80・前側8）<br>（設定は上の「練習」の表と同じです）<br>左の「ファイル」パネルに、加工した4つ（円形の蜂も含む）が並べば準備完了です。', zh: '「作業用」里的鸟、风、宇宙嗡鸣也按步骤2〜14处理，并<b>另存为</b>：<br><b>01_birds_doppler.wav</b>（速度25・前侧4）<br><b>02_wind_doppler.wav</b>（速度30・前侧2）<br><b>05_hum_doppler.wav</b>（速度80・前侧8）<br>（设置和上面「练习」表格相同）<br>左侧「ファイル（文件）」面板里出现处理好的4个文件（包括圆形蜂鸣）就准备好了。' },
+   why: { ja: 'マルチトラックは「もう加工が終わった音を並べる場所」です。ドップラーシフターはマルチトラックでは使えないので、並べる前に効果音を全部、波形エディターで仕上げておきます。', zh: '多轨是"摆放已经处理好的声音的地方"。多普勒频移在多轨里用不了，所以在摆放之前，要先在波形编辑器里把所有音效处理好。' },
+   tip: { ja: 'ファイル名に「_doppler」を付けると、元の音と加工した音を取り違えません。', zh: '文件名加上「_doppler」，就不会把原声和处理后的声音弄混。' },
+   s: { applied: true, processed: true, hl: '[data-m="f-birds"]', hl2: '[data-m="f-wind"],[data-m="f-bee"],[data-m="f-hum"]' } },
+ { title: { ja: '新しいマルチトラックセッションを作る', zh: '新建多轨会话' },
+   ui: { ja: 'ファイル › 新規 › マルチトラックセッション…', en: 'File › New › Multitrack Session…' }, keys: ['⌘N'],
+   do: { ja: '「ファイル」→「新規」→「マルチトラックセッション…」。設定の窓が出たら、次のようにして「OK」：<br>・セッション名：<b>宇宙の風景</b><br>・フォルダーの場所：<b>作業用</b>フォルダー<br>・テンプレート：<b>なし</b><br>・サンプルレート：<b>48000 Hz</b><br>・ビット深度：<b>32（浮動小数点）</b><br>・ミックス：<b>ステレオ</b>', zh: '「ファイル」→「新規（新建）」→「マルチトラックセッション…（多轨会话）」。弹出设置窗口后按下面设置，点「OK」：<br>・セッション名（会话名）：<b>宇宙の風景</b><br>・フォルダーの場所（文件夹位置）：<b>作業用</b>文件夹<br>・テンプレート（模板）：<b>なし（无）</b><br>・サンプルレート（采样率）：<b>48000 Hz</b><br>・ビット深度（位深度）：<b>32（浮動小数点）</b><br>・ミックス（混音）：<b>ステレオ（立体声）</b>' },
+   why: { ja: '<b>セッション＝作品の設計図</b>。「どの音を、いつ、どのくらいの音量で鳴らすか」を記録するファイルです。サンプルレートを素材と同じ 48000 Hz にすると、変換による手間や音質の変化がありません。ミックスを「ステレオ」にしないと、せっかく作った左右の移動が消えてしまいます。', zh: '<b>会话＝作品的设计图</b>，是记录"哪个声音、什么时候、多大音量播放"的文件。采样率和素材一样设为 48000 Hz，就不需要转换，音质也不会变。混音如果不设为「立体声」，辛苦做出的左右移动就没了。' },
+   tip: { ja: '項目の名前や並び順がこの図と少し違っても、同じ意味の項目を探して設定すればOKです。', zh: '项目名称或顺序和这张图略有不同也没关系，找到意思相同的项目设置就行。' },
+   s: { applied: true, processed: true, menu: 'file', hl: '[data-m="new"]', kbd: '⌘ + N', after: { menu: null, ns: true, kbd: null, hl: '[data-m="nsok"]' } } },
+ { title: { ja: '画面の見方：マルチトラック', zh: '认识多轨画面' },
+   ui: { ja: 'マルチトラック', en: 'Multitrack' },
+   do: { ja: 'セッションを作ると、画面が上の画像のように変わります。黄色の番号を順に見ていこう。<br>① 左上のボタンが<b>「マルチトラック」</b>（青）になっている＝いまは並べるモード。<br>② 左上の<b>「ファイル」パネル</b>＝材料箱。加工した音と「宇宙の風景.sesx」（いま作ったセッション）が並びます。<br>③ 上の<b>ルーラー</b>＝時間。5.0、10.0… は<b>秒</b>です。赤い縦線（<b>再生ヘッド</b>）がいま再生する位置です。<br>④ 縦に並ぶ<b>トラック1〜6</b>＝音を置く「棚」。右の暗い部分に音を置いていきます（今はまだ空っぽなので、再生しても音は出ません）。<br>⑤ 下の<b>▶</b>で再生、■で停止（スペースキーでもOK）。', zh: '新建会话后，画面会变成上图的样子。按黄色编号依次看。<br>① 左上的按钮变成<b>「マルチトラック（多轨）」</b>（蓝色）＝现在是排列模式。<br>② 左上的<b>「ファイル（文件）」面板</b>＝材料箱。处理好的声音和「宇宙の風景.sesx」（刚建的会话）都在这里。<br>③ 上方的<b>标尺</b>＝时间。5.0、10.0… 是<b>秒</b>。红色竖线（<b>播放头</b>）是现在播放的位置。<br>④ 纵向排列的<b>トラック（轨道）1〜6</b>＝放声音的"架子"。声音放在右边的暗色区域（现在还是空的，所以播放也没有声音）。<br>⑤ 下方的 <b>▶</b> 播放，■ 停止（也可以按空格键）。' },
+   do2: { ja: '① <b>ボリューム</b>（+0）：このトラックの音量。手順24で使います。<br>② <b>パン</b>（0）：左右のバランス。今回はさわりません（0＝まん中のまま）。<br>③ <b>M</b>＝ミュート（このトラックだけ消す）、<b>S</b>＝ソロ（このトラックだけ鳴らす）。<br>④ <b>出力</b>：「デフォルトのステレオ出力」のままでOK。<br>右側の細長いメーターは、鳴っているときに音の大きさを表示します。', zh: '① <b>ボリューム（音量）</b>（+0）：这条轨道的音量，步骤24会用到。<br>② <b>パン（声像）</b>（0）：左右平衡。这次不用动（0＝保持在中间）。<br>③ <b>M</b>＝静音（只关掉这条轨道），<b>S</b>＝独奏（只播放这条轨道）。<br>④ <b>输出</b>：保持「デフォルトのステレオ出力（默认立体声输出）」就行。<br>右边细长的表会在播放时显示音量大小。' },
+   why: { ja: '波形エディターは「1つの音を加工する作業台」、マルチトラックは「いくつもの音を時間に沿って並べる舞台」です。この違いが分かると、「加工は波形、組み立てはマルチトラック」と迷わず使い分けられます。', zh: '波形编辑器是"加工一个声音的工作台"，多轨是"把多个声音按时间排列的舞台"。理解这个区别，就能清楚分工："加工用波形，组合用多轨"。' },
+   tip: { ja: '右の「エッセンシャルサウンド」パネルは今回は使いません。いちばん下の右に「48000 Hz • 32 ビットミキシング」と出ていれば、手順18の設定どおりです。', zh: '右边的「エッセンシャルサウンド」面板这次不用。最下方右侧显示「48000 Hz • 32 ビットミキシング」，就说明和步骤18的设置一致。' },
+   img: { src: 'screenshots/real_multitrack.jpg', w: 2000, h: 1096, boxes: [{ r: [4.2, 2.5, 6, 2.4], t: '①', pos: 'r' }, { r: [0.3, 12.6, 16.4, 14.6], t: '② ファイル', pos: 'b' }, { r: [29, 13.2, 42.4, 2], t: '③ 時間（秒）', pos: 't' }, { r: [17.4, 15.7, 11.5, 12.9], t: '④ トラック1', pos: 'r' }, { r: [34.7, 85.8, 1.5, 2.2], t: '⑤ 再生', pos: 'r' }] },
+   extra: { lab: { ja: 'よく使う：画面の拡大・縮小・移動（ショートカット付き）', zh: '常用：画面的放大・缩小・移动（附快捷键）' }, img: { src: 'screenshots/real_zoomnav.jpg', w: 1360, h: 58, boxes: [{ r: [0.2, 15, 59.4, 72], t: '①', pos: 'tc' }, { r: [58.8, 15, 1.4, 72], t: '②', pos: 'r' }, { r: [2.9, 24, 24, 45], t: '③', pos: 'b' }, { r: [96.6, 18, 2.8, 64], t: '④', pos: 'l' }] }, body: { ja: `<p>エディターのいちばん上にある細長いバーは、セッション全体の<b>「地図」</b>です（ズームナビゲーター）。</p><p>① <b>灰色の枠</b>＝いま画面に見えている範囲。枠の中をつかんで左右にドラッグすると、見える場所が動きます。<br>② 枠の<b>左右の端</b>をドラッグ：枠をせまくすると<b>拡大</b>（細かく見える）、広くすると<b>縮小</b>（全体が見える）。<br>③ <b>色のついた線</b>＝各トラックのクリップ（色はトラックの色）。赤い縦線は再生ヘッドです。<br>④ <b>虫めがね</b>＝ぜんぶが入る大きさに戻す。</p><div class="tw"><table><thead><tr><th>キー</th><th>できること</th></tr></thead><tbody><tr><td><kbd>=</kbd></td><td>時間を拡大（細かく見る）</td></tr><tr><td><kbd>-</kbd></td><td>時間を縮小（広く見る）</td></tr><tr><td><kbd>&#92;</kbd></td><td>全体を表示（④と同じ）※日本語キーボードでは <kbd>¥</kbd> の位置。効かないときは④をクリック</td></tr><tr><td><kbd>Space</kbd></td><td>再生／停止</td></tr><tr><td><kbd>Home</kbd></td><td>再生ヘッドを先頭（0秒）へ（キーがないMacは下の |◀ ボタン）</td></tr><tr><td><kbd>⌘Z</kbd></td><td>1つ前に戻す</td></tr></tbody></table></div><p><b>なぜ大事？</b> 最初の画面は30秒くらいまでしか見えないので、手順22で34秒に置く宇宙ハムは<b>縮小しないと置けません</b>。逆に、クリップの端を細かく切るとき（手順23・25）は<b>拡大</b>すると正確にできます。「縮小して全体を見る → 拡大して細かく直す」をくり返すのがコツです。</p>`, zh: `<p>编辑器最上方那条细长的条，是整个会话的<b>"地图"</b>（ズームナビゲーター／缩放导航器）。</p><p>① <b>灰色框</b>＝现在画面上看得到的范围。抓住框内左右拖，看到的位置就会移动。<br>② 拖动框的<b>左右两端</b>：框变窄＝<b>放大</b>（看得更细），变宽＝<b>缩小</b>（看到全体）。<br>③ <b>彩色的线</b>＝各轨道的片段（颜色就是轨道的颜色）。红色竖线是播放头。<br>④ <b>放大镜</b>＝恢复成能看到全部的大小。</p><div class="tw"><table><thead><tr><th>按键</th><th>作用</th></tr></thead><tbody><tr><td><kbd>=</kbd></td><td>时间放大（看得更细）</td></tr><tr><td><kbd>-</kbd></td><td>时间缩小（看得更广）</td></tr><tr><td><kbd>&#92;</kbd></td><td>显示全部（和④一样）※日语键盘在 <kbd>¥</kbd> 键的位置。不起作用时点④</td></tr><tr><td><kbd>Space</kbd></td><td>播放／停止</td></tr><tr><td><kbd>Home</kbd></td><td>播放头回到开头（0秒）（没有这个键的 Mac 用下方的 |◀ 按钮）</td></tr><tr><td><kbd>⌘Z</kbd></td><td>退回上一步</td></tr></tbody></table></div><p><b>为什么重要？</b> 一开始的画面只能看到大约30秒，所以步骤22要放在34秒的宇宙嗡鸣，<b>不缩小就放不上去</b>。反过来，精细剪片段端点时（步骤23・25），<b>放大</b>后才能剪得准。"缩小看全体 → 放大细修"反复切换就是诀窍。</p>` } },
+   img2: { src: 'screenshots/real_track_header.jpg', w: 496, h: 278, boxes: [{ r: [16, 21, 18, 16], t: '①', pos: 'l' }, { r: [42, 21, 21, 16], t: '②', pos: 'r' }, { r: [55, 6, 18, 16], t: '③', pos: 'l' }, { r: [16, 39, 57, 14], t: '④', pos: 'r' }] },
+   s: { multi: true, processed: true, clips: [], hl: '[data-m="mruler"]', hl2: '[data-m="hd1"],[data-m="hd2"],[data-m="hd3"]' } },
+ { title: { ja: '素材がファイルパネルにあるか確認', zh: '确认文件面板中有素材' },
+   ui: { ja: 'ファイル › 読み込み › ファイル…', en: 'File › Import › File…' }, keys: ['⌘I'],
+   do: { ja: '左上の「ファイル」パネルに、<b>00_ambient_cosmic_宇宙環境音</b> と、加工した効果音（<b>01_birds_doppler</b>・<b>02_wind_doppler</b>・<b>03_bee_circle</b>・<b>05_hum_doppler</b> など、名前に「_doppler」や「_circle」が付いたもの）が並んでいるか確認します。いちばん下の <b>宇宙の風景.sesx</b> は、手順18で作ったセッションです。足りないときは「ファイル › 読み込み › ファイル…」で「作業用」から選んで読み込みます（⌘ を押しながらクリックすると複数選べます）。', zh: '确认左上的「ファイル（文件）」面板里有 <b>00_ambient_cosmic_宇宙環境音</b> 和处理好的音效（<b>01_birds_doppler</b>・<b>02_wind_doppler</b>・<b>03_bee_circle</b>・<b>05_hum_doppler</b> 等，名字带「_doppler」或「_circle」的文件）。最下面的 <b>宇宙の風景.sesx</b> 是步骤18建的会话。如果缺少，用「ファイル › 読み込み › ファイル…（导入文件）」从「作業用」选择导入（按住 ⌘ 点击可以多选）。' },
+   why: { ja: 'ファイルパネルは<b>材料箱</b>です。ここにある音を、トラックへドラッグして並べていきます。材料箱に入っていない音は並べられません。', zh: '文件面板是<b>材料箱</b>。把这里的声音拖到轨道上排列。不在材料箱里的声音是放不上去的。' },
+   img: { src: 'screenshots/real_multitrack.jpg', w: 2000, h: 1096, boxes: [{ r: [0.3, 12.7, 16.4, 1.6], t: '環境音', pos: 'r' }, { r: [0.3, 14.5, 16.4, 10.8], t: '加工した効果音', pos: 'r' }, { r: [0.3, 25.4, 16.4, 1.6], t: 'セッション（手順18）', pos: 'r' }] },
+   s: { multi: true, processed: true, clips: [], menu: 'file', hl: '[data-m="import"]', after: { menu: null, hl: '[data-m="flist"]' } } },
+ { title: { ja: '環境音をトラック1の0秒に置く', zh: '把环境音放到轨道1的0秒' },
+   ui: { ja: 'ドラッグ＆ドロップ', en: 'Drag & drop' },
+   do: { ja: 'ファイルパネルの <b>00_ambient_cosmic</b> の上でマウスのボタンを<b>押したまま</b>、トラック1の<b>いちばん左</b>まで動かして、そこでボタンを離します。', zh: '在文件面板的 <b>00_ambient_cosmic</b> 上<b>按住</b>鼠标按钮不放，移动到轨道1的<b>最左端</b>，然后松开。' },
+   why: { ja: '環境音は作品全体の「背景」なので、最初の0秒から鳴らします。左端からずれると、最初に無音の時間ができてしまいます。', zh: '环境音是整个作品的"背景"，所以从0秒开始播放。如果没对齐左端，开头就会有一段无声。' },
+   tip: { ja: '置いた音のかたまりを「クリップ」と呼びます。位置がずれたら、クリップの上の帯（名前が書いてある所）をつかんで左右に動かせます。', zh: '放上去的声音块叫做「クリップ（片段）」。位置不对时，抓住片段上方的条（写着名字的地方）就可以左右移动。' },
+   img: { src: 'screenshots/real_mt_clips.jpg', w: 2000, h: 1462, boxes: [{r: [0.7,12.5,27.4,1.6],t: '① ここを押したまま',pos: 'b'},{r: [44.9,15.3,50.6,12.8],t: '② トラック1の左端（0秒）で離す',pos: 'in'}] },
+   s: { multi: true, processed: true, clips: [], hl: '[data-m="f-amb"]', drag: true, after: { clips: ['amb'], hl: '[data-m="slot-amb"]' } } },
+ { title: { ja: '効果音をトラック2〜5に並べる', zh: '把音效排到轨道2〜5' },
+   ui: { ja: 'ドラッグ＆ドロップ', en: 'Drag & drop' },
+   do: { ja: '同じようにドラッグして、上のルーラー（0:10、0:20…＝秒数）を見ながら、<b>1つの音を1つのトラック</b>に置きます：<br>・トラック2：<b>01_birds_doppler</b> を <b>5秒</b><br>・トラック3：<b>02_wind_doppler</b> を <b>14秒</b><br>・トラック4：<b>03_bee_circle</b> を <b>24秒</b><br>・トラック5：<b>05_hum_doppler</b>（宇宙ハム）を <b>34秒</b><br>置いた音は、色つきの四角（<b>クリップ</b>）になります。', zh: '用同样的方法拖动，一边看上方标尺（0:10、0:20…＝秒数），把<b>一个声音放到一条轨道</b>上：<br>・轨道2：<b>01_birds_doppler</b> 放在 <b>5秒</b><br>・轨道3：<b>02_wind_doppler</b> 放在 <b>14秒</b><br>・轨道4：<b>03_bee_circle</b> 放在 <b>24秒</b><br>・轨道5：<b>05_hum_doppler</b>（宇宙嗡鸣）放在 <b>34秒</b><br>放上去的声音会变成带颜色的方块（<b>クリップ／片段</b>）。' },
+   why: { ja: '1つの音に1つのトラックを使うと、<b>音ごとに音量を変えたり</b>、M（ミュート）・S（ソロ）で<b>1つずつ聴いて確かめたり</b>できます。また、効果音どうしの<b>間をあけて1つずつ通り過ぎる</b>ようにすると、それぞれのドップラー効果がはっきり聞こえます。', zh: '一个声音用一条轨道，就能<b>分别调整每个声音的音量</b>，也能用 M（静音）・S（独奏）<b>一个一个单独听来确认</b>。另外让音效之间<b>留出间隔、一个一个经过</b>，每个多普勒效果都能听得很清楚。' },
+   tip: { ja: '秒数はだいたいでOK。置く場所がずれても、次の手順で動かし方を覚えます。', zh: '秒数大概就行。位置放偏了也没关系，下一步会学怎么移动。' },
+   img: { src: 'screenshots/real_mt_clips.jpg', w: 2000, h: 1462, boxes: [{r: [47.2,28.4,6.6,12.7],t: '鳥',pos: 'in'},{r: [50.9,41.4,8.2,12.8],t: '風',pos: 'in'},{r: [66.1,54.7,1.3,12.5],t: '蜂',pos: 'r'},{r: [54.8,67.7,6.5,12.7],t: '宇宙ハム',pos: 'in'},{r: [44.9,13.1,50.6,1.7],t: 'ルーラー＝秒数',pos: 't'}] },
+   s: { multi: true, processed: true, clips: ['amb', 'birds', 'bee', 'wind'], hl: '[data-m="f-hum"]', drag: true, after: { clips: ALL, hl: '[data-m="slot-hum"]' } } },
+ { title: { ja: 'クリップの基本：動かす・短くする・長くする', zh: '片段基本操作：移动・剪短・拉长' },
+   ui: { ja: 'クリップの帯・端をドラッグ ／ クリップ › ループ ／ クリップ › 分割', en: 'Drag clip header / edge · Clip › Loop · Clip › Split' }, keys: ['⌘K', '⌘Z'],
+   do: { ja: '並べた音（クリップ）は、あとから自由に直せます。<br>① <b>動かす</b>：クリップ上の<b>名前の帯</b>をつかんで、左右（時間）や上下（別のトラック）へドラッグ。<br>② <b>短くする</b>：マウスをクリップの<b>左端か右端</b>に合わせると、ポインターが <b>赤いカッコ（ ] ）</b>の形に変わります。そのまま<b>内側へ</b>ドラッグ。<br>③ <b>長くする</b>：同じ端を<b>外側へ</b>ドラッグすると、隠した部分が戻ります。ただし<b>元の長さ（例：8秒）より長くはなりません</b>。もっと長くしたいときは、クリップを右クリック →「<b>ループ</b>」にチェック → 端を外側へドラッグすると、同じ音が<b>くり返されて</b>のびます。<br>④ <b>切る（分割）</b>：赤い縦線（再生ヘッド）を切りたい位置に置き、クリップを選んで「クリップ › 分割」（⌘K）。2つのクリップに分かれます。<br>⑤ クリップの中の<b>黄色の線＝音量</b>、<b>青い線＝パン（左右）</b>です。線をクリックすると点ができて音が変わってしまうので、今回は<b>さわりません</b>。', zh: '排好的声音（片段）之后可以随时修改。<br>① <b>移动</b>：抓住片段上方的<b>名字条</b>，左右（时间）或上下（换轨道）拖动。<br>② <b>剪短</b>：把鼠标移到片段的<b>左端或右端</b>，指针会变成<b>红色括号（ ] ）</b>的形状，直接<b>向内</b>拖。<br>③ <b>拉长</b>：把同一端<b>向外</b>拖，隐藏的部分就会回来。但是<b>不会比原来的长度（例如8秒）更长</b>。想更长时，右键点击片段 → 勾选「<b>ループ（循环）</b>」→ 把端向外拖，同一个声音会<b>重复</b>延长。<br>④ <b>切开（分割）</b>：把红色竖线（播放头）放到想切的位置，选中片段，点「クリップ › 分割」（⌘K），片段会分成两个。<br>⑤ 片段里的<b>黄线＝音量</b>，<b>蓝线＝パン（左右）</b>。点到线上会产生点，声音就会变，所以这次<b>不要碰</b>。' },
+   why: { ja: '素材はちょうどいい長さとは限りません。「鳴き声の最初だけ使いたい」「風をもっと長く吹かせたい」というとき、<b>端をドラッグするだけ</b>で直せます。マルチトラックでの編集は<b>元のファイルを変えない</b>（隠しているだけ）ので、何度やり直しても素材はこわれません。', zh: '素材不一定刚好是需要的长度。"只想用叫声的开头""想让风吹得更久"时，<b>只要拖动片段的端</b>就能调整。多轨里的编辑<b>不会改动原文件</b>（只是隐藏起来），所以重来多少次素材都不会坏。' },
+   tip: { ja: '失敗したら ⌘Z で1つ前に戻れます。左下の「<b>ヒストリー</b>」には「クリップをトリミング」「クリップを移動」など操作が順に並び、上の行をクリックするとそこまで戻れます。', zh: '做错了按 ⌘Z 就能退回上一步。左下的「<b>ヒストリー（历史记录）</b>」里会按顺序列出「クリップをトリミング（修剪片段）」「クリップを移動（移动片段）」等操作，点上面的行就能回到那一步。' },
+   img: { src: 'screenshots/real_mt_clips.jpg', w: 2000, h: 1462, boxes: [{r: [47.2,28.4,6.6,1.3],t: '① 名前の帯：移動',pos: 't'},{r: [53.4,29.6,0.7,11.4],t: '②③ 端：短く／長く',pos: 'r'},{r: [50.9,46.3,8.2,2.4],t: '⑤ 黄＝音量／青＝パン',pos: 'r'},{r: [0.5,84.7,27.5,10.7],t: 'ヒストリー',pos: 'r'}] },
+   s: { multi: true, processed: true, clips: ALL, hl: '[data-m="ambedge"]' } },
+ { title: { ja: '環境音の音量を下げる', zh: '降低环境音的音量' },
+   ui: { ja: 'トラック 1 › ボリューム −8 dB', en: 'Track 1 › Volume −8 dB' },
+   do: { ja: 'トラック1の左にある<b>ボリューム</b>の数字の上で、マウスを押したまま<b>左へ</b>動かします（数字をダブルクリックして <b>-8</b> と入力してもOK）。<b>−8 dB</b> くらいにします。<br>効果音のトラックも、大きすぎる音があれば同じように少し下げます（下げすぎると聞こえなくなるので、聴きながら）。', zh: '在轨道1左侧<b>ボリューム（音量）</b>的数字上按住鼠标<b>向左</b>拖动（也可以双击数字直接输入 <b>-8</b>）。调到 <b>−8 dB</b> 左右。<br>音效轨道如果有太响的，也用同样方法稍微调低（调得太低会听不见，所以要边听边调）。' },
+   why: { ja: '環境音は<b>脇役</b>、ドップラーの効果音が<b>主役</b>。背景が大きいと、主役の「通り過ぎる」動きが埋もれてしまいます。−6〜−10 dB が目安です。', zh: '环境音是<b>配角</b>，多普勒音效是<b>主角</b>。背景太响，主角"经过"的动态就会被淹没。参考值是 −6〜−10 dB。' },
+   tip: { ja: 'dB（デシベル）は音量の単位。マイナスが大きいほど小さい音になります。', zh: 'dB（分贝）是音量单位。负数越大，声音越小。' },
+   img: { src: 'screenshots/real_mt_clips.jpg', w: 2000, h: 1462, boxes: [{r: [31.8,18.2,2.8,1.8],t: 'ここを −8 に',pos: 'b'}] },
+   extra: { lab: { ja: 'くらべてみよう：つまみ と 黄色の線', zh: '比一比：音量旋钮 和 黄线' }, body: { ja: `<div class="tw"><table><thead><tr><th></th><th>左のボリューム（つまみ）</th><th><span class="yl"></span>クリップの黄色の線</th></tr></thead><tbody><tr><td>正式な名前</td><td>トラックボリューム</td><td>クリップボリューム（エンベロープ）</td></tr><tr><td>効く範囲</td><td><b>トラック全体</b>（その段のクリップ全部）</td><td><b>そのクリップだけ</b></td></tr><tr><td>時間で変える</td><td>できない（最初から最後まで同じ）</td><td><b>できる</b>（だんだん小さく、途中だけ下げる など）</td></tr><tr><td>クリップを別のトラックへ動かすと</td><td>移動先のトラックの音量になる</td><td>線はクリップと一緒に動く</td></tr><tr><td>操作</td><td>ドラッグ、または数字を入力</td><td>線をクリックすると<b>点（キーフレーム）</b>ができ、点を上下にドラッグ</td></tr></tbody></table></div><p><b>2つは足し算</b>になります。例：黄色の線 −3 dB ＋ つまみ −8 dB ＝ 合計 −11 dB。</p><p><b>たとえるなら</b>：つまみは「部屋のスピーカーの音量」、黄色の線は「楽譜に書いた“ここからだんだん小さく”」。</p><p><b>使い分け</b>：全体のバランスは<b>つまみ</b>（今回はこれだけでOK）。途中で音量を変えたいときは<b>黄色の線</b>。たとえば蜂が通る数秒だけ環境音を下げたいときは、環境音クリップの黄色の線に点を4つ打ち、まん中の2つを下へドラッグします（あとで戻る形になります）。手順25のフェードアウトも「時間で小さくする」ことなので、黄色の線でも作れます。</p><p>トラックの一番下にある「読み取り」は、トラック全体の音量を時間で変える設定です。今回はそのままにしておきます。</p>`, zh: `<div class="tw"><table><thead><tr><th></th><th>左边的音量旋钮</th><th><span class="yl"></span>片段上的黄线</th></tr></thead><tbody><tr><td>正式名称</td><td>トラックボリューム（轨道音量）</td><td>クリップボリューム（片段音量包络线）</td></tr><tr><td>作用范围</td><td><b>整条轨道</b>（这一行的所有片段）</td><td><b>只有这一个片段</b></td></tr><tr><td>随时间变化</td><td>不能（从头到尾一样）</td><td><b>可以</b>（逐渐变小、中间压低等）</td></tr><tr><td>把片段移到别的轨道</td><td>变成新轨道的音量</td><td>黄线跟着片段一起走</td></tr><tr><td>操作</td><td>拖动，或输入数字</td><td>点击线会出现<b>点（关键帧）</b>，上下拖动这个点</td></tr></tbody></table></div><p><b>两个效果会叠加</b>。例：黄线 −3 dB ＋ 旋钮 −8 dB ＝ 合计 −11 dB。</p><p><b>打个比方</b>：旋钮是"房间音响的音量钮"，黄线是"写在乐谱上的'这里渐弱'"。</p><p><b>怎么选</b>：整体平衡用<b>旋钮</b>（这次用它就够了）。想让音量中途变化时用<b>黄线</b>。例如只想在蜂飞过的几秒把环境音压低：在环境音片段的黄线上点出4个点，把中间2个往下拖（之后会恢复原来的音量）。步骤25的淡出也是"随时间变小"，所以也可以用黄线做。</p><p>轨道最下面的「読み取り（读取）」是让整条轨道音量随时间变化的设置。这次保持原样就行。</p>` } },
+   s: { multi: true, processed: true, clips: ALL, vol1: 0, hl: '[data-m="vol1"]', after: { vol1: -8 } } },
+ { title: { ja: '長さを整えてフェードをつける', zh: '调整长度并加淡入淡出' },
+   ui: { ja: 'クリップの端をドラッグ ・ フェードハンドル（左上／右上の四角）', en: 'Drag clip edge · Fade handles' },
+   do: { ja: '① <b>長さ</b>：環境音クリップの<b>右端</b>をつかんで（手順23の②）左へドラッグし、<b>45秒</b>くらいで終わるように短くします。<br>② <b>フェードアウト</b>：クリップの<b>右上の小さな四角</b>（フェードハンドル）をつかんで<b>左へ</b>ドラッグ。黄色の線が右下へ下がるカーブになり、終わりがだんだん小さくなります。環境音は<b>4秒</b>くらいが目安。<br>③ <b>フェードイン</b>：<b>左上の四角</b>を<b>右へ</b>ドラッグすると、始まりがだんだん大きくなります。<br>効果音のクリップにも、上の画像のように短いフェードイン・アウトをつけると、始まりと終わりがなめらかになります。', zh: '① <b>长度</b>：抓住环境音片段的<b>右端</b>（步骤23的②）向左拖，缩短到大约 <b>45秒</b> 结束。<br>② <b>淡出</b>：抓住片段<b>右上角的小方块</b>（淡入淡出手柄）<b>向左</b>拖。黄线会变成往右下降的曲线，结尾会逐渐变小。环境音大约 <b>4秒</b>。<br>③ <b>淡入</b>：把<b>左上角的方块向右</b>拖，开头会逐渐变大。<br>音效片段也可以像上图那样加短短的淡入淡出，开头和结尾会更顺滑。' },
+   why: { ja: '環境音は90秒ありますが、効果音は40秒ほどで終わるので、余った部分を切ります。音がいきなり始まったり切れたりすると「ブツッ」と聞こえることがあります。フェードをつけると、<b>自然に始まり、自然に終わります</b>。マルチトラックでの短縮やフェードは元のファイルを変えないので安心です。', zh: '环境音有90秒，但音效在40秒左右就结束了，所以剪掉多余部分。声音突然开始或突然断掉，有时会听到"噗"的杂音。加上淡入淡出，就能<b>自然开始、自然结束</b>。在多轨里剪短和淡入淡出都不会改动原文件，可以放心。' },
+   tip: { ja: '四角をドラッグしながら<b>上下</b>にも動かすと、カーブの形（急に・ゆっくり）が変わります。画像の弓なりのカーブがフェードの部分で、まん中のまっすぐな黄色の線が手順24で説明した「クリップの音量」です。', zh: '拖动方块时再<b>上下</b>移动，曲线的形状（变化快或慢）会改变。图中弯弯的曲线就是淡入淡出的部分，中间笔直的黄线是步骤24讲过的"片段音量"。' },
+   img: { src: 'screenshots/real_fade.jpg', w: 820, h: 620, boxes: [{ r: [34.6, 56.9, 3.6, 4.8], t: '③ フェードイン', pos: 'b' }, { r: [44.2, 56.9, 3.6, 4.8], t: '② フェードアウト', pos: 't' }, { r: [58.5, 53.7, 1.8, 41.5], t: '① 端：長さ', pos: 'r' }] },
+   s: { multi: true, processed: true, clips: ALL, vol1: -8, hl: '[data-m="ambedge"]', after: { ambLen: 45, fade: true, hl: '[data-m="fadeh"]' } } },
+ { title: { ja: '最初から再生して確認', zh: '从头播放确认' },
+   ui: { ja: '先頭へ → スペース（再生／停止）', en: 'Go to start → Space (play / stop)' }, keys: ['Space'],
+   do: { ja: '下の再生ボタンの並びにある<b>「先頭へ」ボタン（|◀）</b>を押してから、<b>スペース</b>キーで再生。ヘッドホンで最後まで聴きます。止めるときはもう一度スペース。<br>再生中は下の<b>レベルメーター</b>が緑にのびます。のびていれば音は出ています（メーターが動くのに聞こえないときは、ヘッドホンの接続や「オーディオハードウェア」の出力先を確認）。', zh: '先按下方播放按钮中的<b>"回到开头"按钮（|◀）</b>，再按<b>空格</b>键播放。戴耳机听到最后。再按一次空格停止。<br>播放时下方的<b>レベルメーター（电平表）</b>会亮起绿色。绿条在动就说明有声音输出（电平表在动却听不到时，检查耳机连接和「オーディオハードウェア」的输出设备）。' },
+   why: { ja: '実際に聴かないと、音量のバランスや位置が良いかは分かりません。「効果音が聞こえにくい」→環境音をもっと下げる、「詰まっている」→クリップの間をあける、と直してまた聴きます。この「聴く→直す」のくり返しが音づくりの基本です。', zh: '不实际听，就不知道音量平衡和位置好不好。"音效听不清"→再降低环境音，"太挤"→拉开片段间距，改完再听。"听→改"的反复就是声音制作的基本功。' },
+   img: { src: 'screenshots/real_mt_clips.jpg', w: 2000, h: 1462, boxes: [{r: [54.2,86.3,1.1,1.6],t: '① |◀ 先頭へ',pos: 'b'},{r: [50,86.3,1.1,1.6],t: '② 再生',pos: 't'},{r: [29.2,92.5,70.6,3.8],t: '③ 緑＝音が出ている',pos: 'ir'}] },
+   s: { multi: true, processed: true, clips: ALL, vol1: -8, ambLen: 45, fade: true, play: true, playhead: 16, hl: '[data-m="tplay"]', kbd: '|◀ → Space' }, audio: 'audio/99_demo_mix.mp3' },
+ { title: { ja: 'セッションを保存する', zh: '保存会话' },
+   ui: { ja: 'ファイル › 保存', en: 'File › Save' }, keys: ['⌘S'],
+   do: { ja: '「ファイル › 保存」。<b>宇宙の風景.sesx</b> が「作業用」に保存されます。', zh: '「ファイル › 保存」。<b>宇宙の風景.sesx</b> 会保存到「作業用」里。' },
+   why: { ja: 'ここでの「保存」は<b>セッション（設計図）</b>の保存なので、元の音は上書きされません。.sesx には音そのものは入っていないので、素材の WAV と同じフォルダーに置いたまま<b>移動・削除しない</b>こと。次の授業で続きから編集できます。', zh: '这里的「保存」保存的是<b>会话（设计图）</b>，不会覆盖原音频。.sesx 里没有声音本身，所以要和素材 WAV 放在同一个文件夹，<b>不要移动或删除</b>。下节课可以接着编辑。' },
+   s: { multi: true, processed: true, clips: ALL, vol1: -8, ambLen: 45, fade: true, menu: 'file', hl: '[data-m="save"]', kbd: '⌘ + S' } },
+ { title: { ja: '1つの音声ファイルに書き出す', zh: '导出为一个音频文件' },
+   ui: { ja: 'ファイル › 書き出し › マルチトラックミックスダウン › セッション全体…', en: 'File › Export › Multitrack Mixdown › Entire Session…' },
+   do: { ja: '上の画像の順に選びます：① 「ファイル」→ ② 「書き出し」→ ③ 「マルチトラックミックスダウン」→ ④ 「<b>セッション全体…</b>」。<br>「マルチトラックミックスダウンの書き出し」という窓が開きます。', zh: '按上图的顺序选择：① 「ファイル」→ ② 「書き出し（导出）」→ ③ 「マルチトラックミックスダウン（多轨混音）」→ ④ 「<b>セッション全体…（整个会话）</b>」。<br>会弹出「マルチトラックミックスダウンの書き出し（导出多轨混音）」窗口。' },
+   img2cap: { ja: '開いた窓（マルチトラックミックスダウンの書き出し）', zh: '弹出的窗口（导出多轨混音）' }, img2wide: true,
+   img2: { src: 'screenshots/real_export_dlg.jpg', w: 1022, h: 946, boxes: [{ r: [29.6, 9.7, 47.5, 4.1], t: '①', pos: 'ir' }, { r: [29.6, 15.6, 47.5, 3.9], t: '②', pos: 'ir' }, { r: [29.6, 21.3, 47.5, 3.9], t: '③', pos: 'ir' }, { r: [29.6, 33.2, 47.5, 4], t: '④', pos: 'ir' }, { r: [29.6, 61.6, 47.5, 14.2], t: '⑤', pos: 'ir' }, { r: [1.8, 84, 31.5, 3.5], t: '⑥', pos: 'r' }, { r: [81.4, 93.7, 15.7, 4.2], t: '⑦', pos: 't' }] },
+   do2: { ja: '① <b>ファイル名</b>：最初から「宇宙の風景_ミックスダウン.wav」と入っています。そのままでも、自分の名前を足してもOK。<br>② <b>場所</b>：「作業用」フォルダーになっていればOK（「参照…」で変えられます）。<br>③ <b>形式</b>：<b>Wave PCM</b> のまま（いちばん音がきれい）。ファイルを小さくしたいときだけ <b>MP3</b> を選びます。<br>④ <b>新規サンプルタイプ</b>：「48000 Hz ステレオ、32-bit」＝セッションと同じ設定。そのままでOK。<br>⑤ <b>ミックスダウンオプション</b>：「セッション全体」「Mix（ステレオ）」＝<b>全部のトラックを、最初から最後まで、1つのステレオの音にまとめる</b>という意味です。<br>⑥ 「<b>書き出し後にファイルを開く</b>」にチェックを入れておくと、できたファイルが波形エディターで開き、すぐ聴いて確認できます。<br>⑦ <b>OK</b> を押すと書き出しが始まります。', zh: '① <b>ファイル名（文件名）</b>：默认已经填好「宇宙の風景_ミックスダウン.wav」。保持原样或加上自己的名字都可以。<br>② <b>場所（位置）</b>：是「作業用」文件夹就行（可以用「参照…（浏览）」更改）。<br>③ <b>形式（格式）</b>：保持 <b>Wave PCM</b>（音质最好）。只有想让文件变小时才选 <b>MP3</b>。<br>④ <b>新規サンプルタイプ（新采样类型）</b>：「48000 Hz 立体声、32-bit」＝和会话相同的设置，保持原样就行。<br>⑤ <b>ミックスダウンオプション（混音选项）</b>：「セッション全体（整个会话）」「Mix（立体声）」＝<b>把所有轨道从头到尾合成一个立体声音频</b>的意思。<br>⑥ 勾选「<b>書き出し後にファイルを開く（导出后打开文件）</b>」，导出的文件会在波形编辑器里打开，马上就能听来确认。<br>⑦ 点 <b>OK</b> 开始导出。' },
+   why: { ja: 'マルチトラックの .sesx は Audition 以外では再生できません。すべてのトラックを<b>1つの音声ファイルにまとめる</b>ことで、ほかのソフトやスマホでも再生でき、提出・共有・発表ができるようになります。書き出しても .sesx はそのまま残るので、あとで直してもう一度書き出せます。', zh: '多轨的 .sesx 只有 Audition 能打开。把所有轨道<b>合并成一个音频文件</b>，用其他软件或手机也能播放，才能提交、分享和展示。导出后 .sesx 依然保留，之后修改了还可以再导出一次。' },
+   tip: { ja: '書き出したファイルは、ソロ（S）やミュート（M）の状態もそのまま反映されます。書き出す前に、M・S がオフになっているか確認しよう。', zh: '导出的文件会反映独奏（S）和静音（M）的状态。导出前确认一下 M・S 都是关闭的。' },
+   img: { src: 'screenshots/real_export_menu.jpg', w: 2000, h: 1653, boxes: [{ r: [19.2, 0.3, 7.5, 2.8], t: '①', pos: 'l' }, { r: [19.8, 52.1, 34, 2.9], t: '②', pos: 'l' }, { r: [54.2, 62, 28.3, 2.9], t: '③', pos: 'tc' }, { r: [83.1, 64.8, 12.7, 2.9], t: '④ セッション全体…', pos: 'b' }] },
+   s: { multi: true, processed: true, clips: ALL, vol1: -8, ambLen: 45, fade: true, menu: 'file', hl: '[data-m="export"]', after: { menu: null, ex: true, hl: '[data-m="exok"]' } } },
+];
+const P2I = steps.findIndex(s => s.part2);
+
+/* ---------- mock builder ---------- */
+const CUR = '<svg viewBox="0 0 22 22"><path d="M3 2l14 9-6 1.5L8 19z" fill="#fff" stroke="#111" stroke-width="1.2"/></svg>';
+const PROC = [['f-amb', '00_ambient_cosmic_宇宙環境音.wav'], ['f-birds', '01_birds_doppler.wav', 1], ['f-wind', '02_wind_doppler.wav', 1], ['f-bee', '03_bee_circle.wav', 1], ['f-hum', '05_hum_doppler.wav', 1], ['', '03_bee_doppler.wav']];
+const CLIPS = { amb: [1, 0, 90, '00_ambient_cosmic', ''], birds: [2, 5, 8, '鳥 birds', 'b'], bee: [2, 24, 8, '蜂 bee', 'b'], wind: [3, 14, 10, '風 wind', 'c'], hum: [3, 34, 8, 'UFO hum', 'c'] };
+const PPS = 6.2, HDW = 120;
+function mockHTML(u) {
+  const mi = (it) => it === '-' ? '<div class="hr"></div>' : `<div${it[0] ? ` data-m="${it[0]}"` : ''}>${it[1]}${it[2] ? ` <em>${it[2]}</em>` : ''}</div>`;
+  const dlg = (key, title, rows, ok) => `<div class="save" data-m="${key}" hidden><div class="sth">${title}</div><div class="bd2">${rows.map(([a, b]) => `<div class="f">${a}<span class="in">${b}</span></div>`).join('')}<div class="okrow"><span class="btn">${u.cancel}</span><span class="btn pri" data-m="${ok}">${u.ok}</span></div></div></div>`;
+  const effItems = u.eff.map(t => t === '-' ? '-' : t.endsWith('>') ? [t.slice(0, -1) === u.special ? 'special' : '', t.slice(0, -1), '›'] : ['', t]);
+  return `
+  <div class="mb"><span class="apple"></span><b>${u.app}</b>${u.menus.map((t, i) => `<span${i === 0 ? ' data-m="mfile"' : i === 4 ? ' data-m="meff"' : ''}>${t}</span>`).join('')}</div>
+  <div class="tb"><i></i><i></i><i></i><span>Adobe Audition</span></div>
+  <div class="tbar"><span class="tab" data-m="wtab">▤ ${u.wtab}</span><span class="tab" data-m="mtab">▦ ${u.mtab}</span><span class="wsn">${u.ws} ≡</span></div>
+  <div class="ws">
+    <div class="pn files"><div class="ph"><b>${u.files} ≡</b><span>${u.tmplTab}</span></div><div class="cols"><span>${u.colName}</span><span>${u.colDur}</span></div><div data-m="flist"></div></div>
+    <div class="pn" data-m="editor">
+      <div class="ph"><b data-m="ename"></b><span>≡</span><span>${u.mixer}</span></div>
+      <div class="ruler"><span>0.0</span><span>1.0</span><span>2.0</span><span>3.0</span><span>4.0</span><span>5.0</span><span>6.0</span><span>7.0</span><span>8.0</span></div>
+      <span class="chl" style="top:58px">L</span><span class="chl" style="top:58%">R</span>
+      <canvas class="wv" data-m="wave" width="1400" height="760"></canvas>
+      <div class="mt" data-m="mt"></div>
+    </div>
+  </div>
+  <div class="tr"><span class="time" data-m="time">0:00.000</span><span>■</span><span class="pl" data-m="tplay">▶</span><span>⏸</span><span>|◀</span><span>◀◀</span><span>▶▶</span><span style="color:#e44">●</span><span class="st" data-m="status">${u.status}</span></div>
+  <div class="menu" data-m="filemenu" style="left:92px;top:22px" hidden>${u.file.map(mi).join('')}</div>
+  <div class="menu" data-m="effmenu" style="left:250px;top:22px" hidden>${effItems.map(mi).join('')}</div>
+  <div class="menu" data-m="specmenu" style="left:478px;top:300px" hidden>${u.spec.map((t, i) => mi([i === 1 ? 'doppler' : '', t])).join('')}</div>
+  <div class="dlg" data-m="dlg" hidden>
+    <div class="dt">${u.dlgT}</div>
+    <div class="pr">${u.presets} <span class="sel">${u.def} <span>⌄</span></span><span class="ib">⤓</span><span class="ib">🗑</span><span class="ib">★</span></div>
+    <div class="bd">
+      <div><div class="prm" data-m="prm"></div>
+        <div class="q" data-m="quality">
+          <div>${u.volBase}</div>
+          <div class="ck"><i>✓</i> ${u.vDist}</div><div class="ck"><i>✓</i> ${u.vDir}</div>
+          <div class="ck" style="gap:10px">${u.ql} <span class="sel" style="min-width:110px">${u.qv} <span>⌄</span></span></div>
+        </div>
+      </div>
+      <div class="graph" data-m="graph"><svg viewBox="0 0 200 200" data-m="gsvg"></svg></div>
+    </div>
+    <div class="io">${u.io}</div>
+    <div class="ft"><span class="ib pw" data-m="power">⏻</span><span class="ib" data-m="play">▶</span><span class="ib">⟲</span><span style="margin-left:auto" class="btn">${u.close}</span><span class="btn" data-m="apply">${u.apply}</span></div>
+  </div>
+  ${dlg('savedlg', u.saveT, [[u.fname, '03_bee_doppler'], [u.loc, '…/doppler-lesson-ST/作業用'], [u.fmt, 'Wave PCM (*.wav, *.bwf, *.rf64, *.amb)'], [u.stype, u.stv], [u.fset, u.fsetv]], 'savebtn')}
+  ${dlg('ns', u.nsT, [[u.sname, '宇宙の風景'], [u.folder, '…/doppler-lesson-ST/作業用'], [u.tmpl, u.none], [u.sr, '48000 Hz'], [u.bd, u.bdv], [u.mix, u.stereo]], 'nsok')}
+  ${dlg('ex', u.exT, [[u.fname, '宇宙の風景_mix'], [u.loc, '…/doppler-lesson-ST/作業用'], [u.fmt, u.mp3], [u.stype, '48000 Hz ' + u.stereo]], 'exok')}
+  <div class="finder" data-m="finder" hidden>
+    <div class="fbar"><i></i><i></i><i></i><b>doppler-lesson-ST</b></div>
+    <div class="fbody"><div class="fside">AirDrop<br>アプリケーション<br>デスクトップ<br><b>書類</b><br>ダウンロード</div>
+      <div class="flist2" data-m="flist2"></div></div>
+    <div class="menu fctx" data-m="fctx" hidden>${u.finder.map((t, i) => mi(t === '-' ? '-' : [i === 8 ? 'fdup' : '', t])).join('')}</div>
+  </div>
+  <div class="kbd" data-m="kbd" hidden></div>
+  <div class="cursor" data-m="cursor">${CUR}</div>`;
+}
+const m = (root, k) => root.querySelector(`[data-m="${k}"]`);
+
+function paramRows(p, u) {
+  const row = (k, lab, val, unit) => `<div class="r" data-m="r-${k}"><span class="lb">${lab}</span><span class="v">${val}</span><span class="un">${unit}</span></div>`;
+  const pt = `<div class="r pt" data-m="path"><span class="lb">${u.pathType}</span><span class="rad ${p.path === 'line' ? 'on' : ''}"></span><span>⟼</span><span class="rad ${p.path === 'circle' ? 'on' : ''}" style="margin-left:22px"></span><span>↻</span></div>`;
+  if (p.path === 'line') return pt + row('dist', u.dist, p.dist, 'm') + row('vel', u.vel, p.vel, 'm/s') + row('from', u.from, p.from, '°') + row('front', u.front, p.front, 'm') + row('right', u.right, p.right, 'm');
+  return pt + row('rad', u.rad, p.radius, 'm') + row('vel', u.vel, p.vel, 'm/s') + row('ang', u.ang, p.ang, '°') + row('cf', u.cf, p.cfront, 'm') + row('cr', u.cr, p.cright, 'm');
+}
+function graphSVG(p) {
+  const axes = `<rect x="20" y="20" width="160" height="160" fill="#1b1b1e"/><line x1="100" y1="20" x2="100" y2="180" stroke="#8d8d94"/><line x1="20" y1="100" x2="180" y2="100" stroke="#8d8d94"/>` +
+    `<g fill="#b9b9c0" font-size="9" font-family="sans-serif" text-anchor="middle"><text x="100" y="14">0°</text><text x="100" y="194">180°</text><text x="190" y="103">90°</text><text x="10" y="103">270°</text></g>`;
+  let path;
+  if (p.path === 'line') {
+    const y = 100 - p.front * 2.4;
+    path = `<line x1="30" y1="${y}" x2="168" y2="${y}" stroke="#3d8bff" stroke-width="1.6"/>${[30, 65, 100, 135].map(x => `<circle cx="${x}" cy="${y}" r="2.4" fill="#3d8bff"/>`).join('')}<path d="M162 ${y - 4} L170 ${y} L162 ${y + 4}" fill="none" stroke="#3d8bff" stroke-width="1.6"/>`;
+  } else {
+    const cy = 100 - p.cfront * 4, r = p.radius * 4;
+    path = `<circle cx="100" cy="${cy}" r="${r}" fill="none" stroke="#3d8bff" stroke-width="1.6"/><path d="M${100 + r - 4} ${cy - 2} L${100 + r} ${cy + 5} L${100 + r + 4} ${cy - 2}" fill="none" stroke="#3d8bff" stroke-width="1.6"/><circle cx="100" cy="${cy}" r="2" fill="#3d8bff"/>`;
+  }
+  return axes + path;
+}
+// deterministic pseudo waveform
+function drawWave(cv, st) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  if (st.spec) {
+    const top = H * 0.5, sh = H - top;
+    g.fillStyle = '#000'; g.fillRect(0, top, W, sh);
+    const heat = (a) => { a = Math.max(0, Math.min(1, a)); const r = Math.min(255, 60 + a * 400), gg = Math.max(0, Math.min(255, (a - .45) * 460)), b = Math.max(0, 120 - a * 160) + (a < .3 ? 60 : 0); return 'rgb(' + (r | 0) + ',' + (gg | 0) + ',' + (b | 0) + ')' };
+    for (let x = 0; x < W; x += 4) {
+      const t = x / W * 8, xs = 40 * (t - 4), r = Math.hypot(xs, 5), ratio = 343 / (343 + 40 * xs / r);
+      const loud = Math.pow(5 / Math.max(r, 4), .8) * Math.min(1, x / 30, (W - x) / 60);
+      for (let k = 1; k <= 26; k++) {
+        const f = 195 * k * ratio; if (f > 16000) break;
+        const y = top + sh - (Math.log2(f / 150) / Math.log2(16000 / 150)) * sh;
+        const a = loud * 1.5 / Math.sqrt(k);
+        if (a < .04) continue;
+        g.fillStyle = heat(a); g.fillRect(x, y - 2, 4, 4);
+      }
+    }
+  }
+  const chans = st.spec ? [[H * .03, H * .22], [H * .27, H * .22]] : [[H * .04, H * .44], [H * .52, H * .44]];
+  chans.forEach(([y0, hh], ci) => {
+    const mid = y0 + hh / 2;
+    g.strokeStyle = '#2d2d31'; g.beginPath(); g.moveTo(0, mid); g.lineTo(W, mid); g.stroke();
+    g.fillStyle = '#2fe0a0';
+    let s = 12345 + ci;
+    for (let x = 0; x < W; x += 2) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      const n = .75 + .25 * (s / 0x7fffffff);
+      let env = Math.min(1, x / 40, (W - x) / 60);
+      if (st.applied) {
+        const t = x / W * 8, xs = 40 * (t - 4), r = Math.hypot(xs, 5), pan = .8 * xs / r, th = (pan + 1) * Math.PI / 4;
+        env *= Math.pow(5 / Math.max(r, 4), .8) * (ci === 0 ? Math.cos(th) : Math.sin(th)) * 1.35;
+      } else env *= .55;
+      const a = hh * .48 * env * n;
+      g.fillRect(x, mid - a, 2, a * 2);
+    }
+    if (st.sel) { g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, y0, W, hh) }
+  });
+}
+function multiHTML(st, u) {
+  const ruler = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(s => `<span style="left:${HDW + s * PPS}px">${s}</span>`).join('');
+  const shown = st.clips || [];
+  let rows = '';
+  for (let n = 1; n <= 3; n++) {
+    const v = n === 1 ? (st.vol1 ?? 0) : 0;
+    let lane = '';
+    for (const [id, [tr, at, len0, name, cls]] of Object.entries(CLIPS)) {
+      if (tr !== n) continue;
+      const len = id === 'amb' ? (st.ambLen || len0) : len0;
+      lane += `<div class="slot" data-m="slot-${id}" style="left:${at * PPS}px;width:${len * PPS}px"></div>`;
+      if (!shown.includes(id)) continue;
+      const fade = id === 'amb' && st.fade;
+      lane += `<div class="clip ${cls}" style="left:${at * PPS}px;width:${len * PPS}px"><span>${name}</span>` +
+        (id === 'amb' ? `${fade ? `<svg class="fd" style="width:${4 * PPS}px" viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0 Q6 1 10 10 L10 0Z" fill="rgba(0,0,0,.45)"/></svg>` : ''}<i class="fh" data-m="fadeh" style="right:${fade ? 4 * PPS - 4 : 2}px"></i><i class="edge" data-m="ambedge"></i>` : '') + `</div>`;
+    }
+    rows += `<div class="trk"><div class="hd" data-m="hd${n}"><b>${u.track} ${n}</b><span class="knob" data-m="vol${n}">${u.volume} ${v > 0 ? '+' : ''}${v} dB</span></div><div class="lane">${lane}</div></div>`;
+  }
+  return `<div class="mruler" data-m="mruler">${ruler}</div>${rows}<div class="phd" style="left:${HDW + (st.playhead || 0) * PPS}px"></div>`;
+}
+function finderHTML(st, u) {
+  const rows = [['01_素材_source', 1, 'fsrc'], ['02_完成例_reference', 1], ['audio', 1], ['screenshots', 1], ['tutorial.html', 0]];
+  if (st.finder === 2) rows.splice(1, 0, [u.copy, 1, 'fcopy']);
+  return rows.map(([n, dir, k]) => `<div${k ? ` data-m="${k}"` : ''}${k === 'fsrc' && st.finder === 1 ? ' class="sel"' : ''}><span class="${dir ? 'fd' : 'fi'}"></span>${n}</div>`).join('');
+}
+
+function applyScene(root, st) {
+  const u = U[UIL];
+  root.classList.toggle('view-multi', !!st.multi);
+  m(root, 'wtab').classList.toggle('on', !st.multi);
+  m(root, 'mtab').classList.toggle('on', !!st.multi);
+  const fname = st.saved || st.save === 'done' ? '03_bee_doppler.wav' : '03_bee_蜂.wav';
+  m(root, 'ename').textContent = `${u.editor}: ${st.multi ? u.sess : fname}`;
+  const fl = (st.multi || st.processed) ? PROC : [['', fname, 1]];
+  m(root, 'flist').innerHTML = fl.map(([k, name, strong]) => `<div${k ? ` data-m="${k}"` : ''}${strong ? ' class="cur"' : ''}>${name}</div>`).join('');
+  m(root, 'mfile').classList.toggle('open', st.menu === 'file');
+  m(root, 'meff').classList.toggle('open', st.menu === 'effects');
+  m(root, 'filemenu').hidden = st.menu !== 'file';
+  m(root, 'effmenu').hidden = st.menu !== 'effects';
+  m(root, 'specmenu').hidden = st.menu !== 'effects';
+  m(root, 'special').classList.toggle('on', st.menu === 'effects');
+  m(root, 'dlg').hidden = !st.dlg;
+  m(root, 'savedlg').hidden = !st.save;
+  m(root, 'ns').hidden = !st.ns;
+  m(root, 'ex').hidden = !st.ex;
+  m(root, 'finder').hidden = !st.finder;
+  m(root, 'fctx').hidden = st.finder !== 1;
+  if (st.finder) m(root, 'flist2').innerHTML = finderHTML(st, u);
+  const kbd = m(root, 'kbd'); kbd.hidden = !st.kbd; kbd.textContent = st.kbd || '';
+  if (st.dlg) { m(root, 'prm').innerHTML = paramRows(st.p, u); m(root, 'gsvg').innerHTML = graphSVG(st.p) }
+  m(root, 'play').classList.toggle('on', !!st.play);
+  m(root, 'tplay').classList.toggle('on', !!st.play);
+  const ph = st.playhead || 0;
+  m(root, 'time').textContent = `0:${String(Math.floor(ph)).padStart(2, '0')}.000`;
+  if (st.multi) m(root, 'mt').innerHTML = multiHTML(st, u);
+  else drawWave(m(root, 'wave'), st);
+  root.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
+  root.querySelectorAll('.menu .on').forEach(e => { if (e.dataset.m !== 'special') e.classList.remove('on') });
+  const target = st.hl && root.querySelector(st.hl);
+  if (target) { if (target.closest('.menu')) target.classList.add('on'); target.classList.add('hl') }
+  if (st.hl2) root.querySelectorAll(st.hl2).forEach(e => e.classList.add('hl'));
+  return target;
+}
+function offsetIn(el, root) {
+  const a = el.getBoundingClientRect(), b = root.getBoundingClientRect(), s = b.width / 880;
+  return [(a.left - b.left + a.width / 2) / s, (a.top - b.top + a.height / 2) / s];
+}
+function makeMock(host) {
+  const d = document.createElement('div'); d.className = 'mock'; d.innerHTML = mockHTML(U[UIL]); host.appendChild(d);
+  const fit = () => { d.style.transform = `scale(${host.clientWidth / 880})` };
+  new ResizeObserver(fit).observe(host); fit();
+  return d;
+}
+const finalState = (s) => Object.assign({}, s.s, s.s.after || {});
+function realHTML(img) {
+  return `<img src="${img.src}" alt="" width="${img.w}" height="${img.h}"><div class="bx">` +
+    img.boxes.map((b, i) => `<div class="box p-${b.pos || 'r'}" style="left:${b.r[0]}%;top:${b.r[1]}%;width:${b.r[2]}%;height:${b.r[3]}%;transition-delay:${i * .5}s"><span>${b.t}</span></div>`).join('') + '</div>';
+}
+
+/* ---------- step list with screenshots ---------- */
+const list = $('#stepList');
+let DONE = []; try { DONE = JSON.parse(localStorage.getItem('doppler-done') || '[]') } catch (e) {}
+function updDone() { $('#doneCount').textContent = DONE.length + ' / ' + steps.length }
+list.addEventListener('change', e => {
+  const c = e.target.closest('[data-done]'); if (!c) return;
+  const i = +c.dataset.done; DONE = DONE.filter(x => x !== i); if (c.checked) DONE.push(i);
+  try { localStorage.setItem('doppler-done', JSON.stringify(DONE)) } catch (e) {}
+  c.closest('.step').classList.toggle('isdone', c.checked); updDone();
+});
+const P2 = { ja: 'パート2：マルチトラックで作品に仕上げる', zh: '第2部分：在多轨中完成作品' };
+const P2D = { ja: `ここからは、加工した効果音と宇宙の環境音を<b>1つの作品</b>に組み立てます。初めての人は、まず「マルチトラック＝音を時間に沿って並べる舞台」とだけ覚えてください。手順${P2I + 1}〜${steps.length}の${steps.length - P2I}ステップです。`, zh: `接下来，把处理好的音效和宇宙环境音<b>组合成一个作品</b>。第一次接触的同学，先只要记住"多轨＝把声音按时间排列的舞台"。共${steps.length - P2I}步（步骤${P2I + 1}〜${steps.length}）。` };
+const REAL = { ja: '実際の画面', zh: '实际画面' }, DRAWN = { ja: '説明図', zh: '示意图' };
+function renderSteps() {
+  const recWrap = document.getElementById('recWrap'); recWrap.remove();
+  list.innerHTML = '';
+  steps.forEach((s, i) => {
+    if (s.part2) {
+      const pr = document.createElement('div'); pr.className = 'practice';
+      pr.innerHTML = `<span class="tag">${T({ ja: '練習', zh: '练习' }, 1)}</span><h3>${T({ ja: 'ほかの音でもやってみよう', zh: '用其他声音也试一试' })}</h3><p>${T({ ja: '蜂の音でできたら、鳥・風・虫・宇宙ハムでも<b>手順2〜14と同じ流れ</b>でやってみよう。下の表の数字を入れると、それぞれの音に合った「通り過ぎ方」になります。できたら必ず<b>「別名で保存」</b>で、表の「保存する名前」で保存しよう。', zh: '蜂鸣声做好以后，鸟、风、虫、宇宙嗡鸣也按<b>步骤2〜14同样的流程</b>试一试。填入下表的数字，每个声音就会有适合它的"经过方式"。做好后一定要用<b>「別名で保存（另存为）」</b>，按表中的「保存名」保存。' })}</p><div class="blk tip">${T({ ja: 'ドップラーシフターは<b>前回の数字を覚えています</b>。音を変えるたびに、表の数字を<b>全部</b>入れ直そう（前の音の数字が残っていると、思ったとおりに動きません）。', zh: '多普勒频移会<b>记住上一次的数字</b>。每次换声音时，都要把表里的数字<b>全部</b>重新输入（如果留着上一个声音的数字，效果就会和预想的不一样）。' })}</div>`;
+      pr.appendChild(recWrap); list.appendChild(pr);
+
+      const dv = document.createElement('div'); dv.className = 'divider';
+      dv.innerHTML = `<h3>${T(P2)}</h3><p>${T(P2D)}</p>`; list.appendChild(dv);
+    }
+    const el = document.createElement('article'); el.className = 'step' + (DONE.includes(i) ? ' isdone' : ''); el.id = 'step' + (i + 1);
+    const keys = s.keys ? `<div class="keys">${s.keys.map(k => `<kbd>${k}</kbd>`).join(' / ')}</div>` : '';
+    const other = UIL === 'ja' ? 'en' : 'ja';
+    el.innerHTML = `<div class="head"><span class="num">${i + 1}</span><h3>${T(s.title)}</h3><label class="done"><input type="checkbox" data-done="${i}"${DONE.includes(i) ? ' checked' : ''}> ${T({ ja: 'できた', zh: '完成' }, 1)}</label></div>
+      <div class="shot${s.img ? ' realshot' : ''}"${s.img ? ` style="aspect-ratio:${s.img.w}/${s.img.h}"` : ''}><span class="badge${s.img ? ' real' : ''}">${T(s.img ? REAL : DRAWN, 1)}</span></div>
+      <div class="body"><div class="col">
+        <div class="blk ui"><span class="lab">${T({ ja: '画面の表記', zh: '界面名称' }, 1)}</span><span class="mono">${s.ui[UIL]}</span><span class="uialt">${s.ui[other]}</span>${keys}</div>
+        <div class="blk"><span class="lab">${T({ ja: '操作', zh: '操作' }, 1)}</span>${T(s.do)}${s.img2 ? `<p class="subcap"><b>${T(s.img2cap || { ja: 'トラックの左側（拡大）', zh: '轨道左侧（放大）' })}</b></p><div class="real show sub${s.img2wide ? ' wide' : ''}">${realHTML(s.img2)}</div>${T(s.do2)}` : ''}</div>
+        </div><div class="col"><div class="blk why"><span class="lab">${T({ ja: 'なぜ？', zh: '为什么？' }, 1)}</span>${T(s.why)}</div>
+        ${s.tip ? `<div class="blk tip">${T(s.tip)}</div>` : ''}
+      </div></div>${s.extra ? `<div class="blk ext"><span class="lab">${T(s.extra.lab, 1)}</span>${s.extra.img ? `<div class="real show nav">${realHTML(s.extra.img)}</div>` : ''}${T(s.extra.body)}</div>` : ''}`;
+    list.appendChild(el);
+    const shot = el.querySelector('.shot');
+    if (s.img) { const r = document.createElement('div'); r.className = 'real show'; r.innerHTML = realHTML(s.img); shot.prepend(r) }
+    else {
+      const mk = makeMock(shot);
+      m(mk, 'cursor').hidden = true;
+      requestAnimationFrame(() => applyScene(mk, finalState(s)));
+    }
+  });
+  updDone();
+}
+
+/* ---------- video player ---------- */
+const stage = $('#stage'), cap = $('#cap'), prog = $('#prog');
+const realv = document.createElement('div'); realv.className = 'realv'; realv.hidden = true; realv.innerHTML = '<div class="real"></div>'; stage.appendChild(realv);
+const realBox = realv.firstChild;
+let mock, cursor;
+steps.forEach((s, i) => { const b = document.createElement('button'); b.setAttribute('aria-label', 'step ' + (i + 1)); if (i >= P2I) b.classList.add('p2'); b.innerHTML = '<i></i>'; b.onclick = () => go(i, playing); prog.appendChild(b) });
+let cur = 0, playing = false, timers = [], startAt = 0, raf = 0;
+const DUR = 8000;
+function dur() { return DUR * parseFloat($('#vSpeed').value) }
+let goGen = 0;
+function clearT() { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); goGen++; if (!narrBtn) { narr.pause(); narr.onended = null } }
+function moveCursor(target) {
+  if (!target) return;
+  const [x, y] = offsetIn(target, mock);
+  cursor.style.transform = `translate(${x - 4}px, ${y - 3}px)`;
+}
+function ripple(target) {
+  if (!target) return;
+  const [x, y] = offsetIn(target, mock), r = document.createElement('div');
+  r.className = 'ripple'; r.style.left = x + 'px'; r.style.top = y + 'px'; mock.appendChild(r); setTimeout(() => r.remove(), 700);
+}
+function fitReal() {
+  const s = steps[cur]; if (!s || !s.img) return;
+  const W = stage.clientWidth, H = stage.clientHeight, ar = s.img.w / s.img.h;
+  const w = Math.min(W, H * ar); realBox.style.width = w + 'px'; realBox.style.height = (w / ar) + 'px';
+}
+function go(i, autoplay) {
+  clearT(); cur = Math.max(0, Math.min(steps.length - 1, i));
+  const s = steps[cur];
+  if (audio.dataset.fromVideo) { audio.pause(); delete audio.dataset.fromVideo }
+  cap.innerHTML = `<span class="n">STEP ${String(cur + 1).padStart(2, '0')} / ${steps.length}${cur >= P2I ? ' · PART 2' : ''} · ${s.ui[UIL]}${s.img ? ' · ' + T(REAL, 1) : ''}</span><span class="h">${T(s.title)}</span><span class="d">${T(s.do)}</span>`;
+  [...prog.children].forEach((b, k) => { b.classList.toggle('done', k < cur); b.firstChild.style.width = '0' });
+  const D = dur();
+  realv.hidden = !s.img; mock.hidden = !!s.img;
+  if (s.img) {
+    realBox.classList.remove('show'); realBox.innerHTML = realHTML(s.img); fitReal();
+    if (autoplay) timers.push(setTimeout(() => realBox.classList.add('show'), D * .15)); else realBox.classList.add('show');
+  } else {
+    const st = Object.assign({}, s.s); delete st.after;
+    const target = applyScene(mock, autoplay ? st : finalState(s));
+    requestAnimationFrame(() => moveCursor(autoplay ? target : mock.querySelector('.hl')));
+    if (autoplay) {
+      const a = s.s.after;
+      timers.push(setTimeout(() => ripple(target), D * .3));
+      if (a && s.s.drag) {
+        timers.push(setTimeout(() => moveCursor(mock.querySelector(a.hl)), D * .38));
+        timers.push(setTimeout(() => { const t = applyScene(mock, finalState(s)); ripple(t) }, D * .6));
+      } else if (a) {
+        timers.push(setTimeout(() => { const t = applyScene(mock, finalState(s)); requestAnimationFrame(() => moveCursor(t)); timers.push(setTimeout(() => ripple(t), 900)) }, D * .42));
+      }
+    }
+  }
+  if (!autoplay) return;
+  if ($('#vNarr').checked) {
+    stopNarr(); document.querySelectorAll('.narr-btn').forEach(x => narrLabel(x, false));
+    const g = goGen, bar = prog.children[cur].firstChild;
+    const next = () => { if (g !== goGen) return; if (cur < steps.length - 1) go(cur + 1, true); else setPlaying(false) };
+    narr.src = narrSrc('step_' + String(cur + 1).padStart(2, '0')); narr.currentTime = 0;
+    narr.playbackRate = 1 / parseFloat($('#vSpeed').value); narr.play().catch(() => {});
+    const tickN = () => { if (g !== goGen) return; if (narr.duration) bar.style.width = Math.min(100, narr.currentTime / narr.duration * 100) + '%'; raf = requestAnimationFrame(tickN) };
+    raf = requestAnimationFrame(tickN);
+    narr.onended = () => {
+      if (g !== goGen) return; bar.style.width = '100%';
+      if (s.audio && $('#vSound').checked) {
+        stopAudio(); audio.src = s.audio; audio.currentTime = 0; audio.dataset.fromVideo = 1; audio.play().catch(() => {});
+        audio.addEventListener('ended', () => timers.push(setTimeout(next, 600)), { once: true });
+        timers.push(setTimeout(next, 15000));
+      } else timers.push(setTimeout(next, 700));
+    };
+    return;
+  }
+  if (s.audio && $('#vSound').checked) timers.push(setTimeout(() => { stopAudio(); audio.src = s.audio; audio.currentTime = 0; audio.dataset.fromVideo = 1; audio.play().catch(() => {}) }, D * .3));
+  startAt = performance.now();
+  const bar = prog.children[cur].firstChild;
+  const tickBar = (now) => { const u = Math.min(1, (now - startAt) / D); bar.style.width = (u * 100) + '%'; if (u < 1) raf = requestAnimationFrame(tickBar) };
+  raf = requestAnimationFrame(tickBar);
+  timers.push(setTimeout(() => { if (cur < steps.length - 1) go(cur + 1, true); else setPlaying(false) }, D));
+}
+function setPlaying(p) {
+  playing = p;
+  $('#vPlay').innerHTML = (p ? '❚❚ ' : '▶ ') + T(p ? { ja: '一時停止', zh: '暂停' } : { ja: '再生', zh: '播放' }, 1);
+  if (p) go(cur >= steps.length - 1 && !timers.length ? 0 : cur, true); else { clearT(); if (audio.dataset.fromVideo) audio.pause() }
+}
+$('#vPlay').onclick = () => setPlaying(!playing);
+$('#vPrev').onclick = () => go(cur - 1, playing);
+$('#vNext').onclick = () => go(cur + 1, playing);
+$('#vSpeed').onchange = () => { if (playing) go(cur, true) };
+document.addEventListener('click', e => { const j = e.target.closest('.jump'); if (!j) return; $('#video').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); go(+j.dataset.go, false); setPlaying(true) });
+
+function buildMocks() {
+  stage.querySelectorAll('.mock').forEach(n => n.remove());
+  mock = makeMock(stage); cursor = m(mock, 'cursor');
+  renderSteps();
+  document.querySelectorAll('.uiseg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.ui === UIL));
+  go(cur, playing);
+}
+document.querySelectorAll('.uiseg button').forEach(b => b.onclick = () => {
+  UIL = b.dataset.ui; try { localStorage.setItem('doppler-ui', UIL) } catch (e) {}
+  buildMocks();
+});
+$('#auMap').innerHTML = realHTML({ ...IMG.wave, boxes: [
+  { r: [0.6, 2.4, 9.6, 2.2], t: '1', pos: 'r' }, { r: [0.3, 6.4, 20.2, 22.5], t: '2', pos: 'in' }, { r: [20.8, 5.4, 52.8, 80.2], t: '3', pos: 'in' },
+  { r: [35.6, 85.7, 15.6, 2.6], t: '4', pos: 't' }, { r: [20.8, 89.4, 61.4, 8.2], t: '5', pos: 'in' }, { r: [75.6, 97.9, 9.2, 1.9], t: '6', pos: 'l' }] });
+new ResizeObserver(() => { fitReal(); if (mock && !mock.hidden) moveCursor(mock.querySelector('.hl')) }).observe(stage);
+buildMocks();
+
+/* ---------- tables ---------- */
+const sp = [
+  [10, { ja: '速く飛ぶ鳥', zh: '快速飞行的鸟' }], [20, { ja: '救急車・自転車（時速72 km）', zh: '救护车、自行车（时速72公里）' }],
+  [40, { ja: '★練習用（時速144 km）', zh: '★练习用（时速144公里）' }], [60, { ja: '高速道路の車より速い', zh: '比高速公路上的车还快' }],
+  [89, { ja: '新幹線（時速320 km）', zh: '新干线（时速320公里）' }], [100, { ja: '大げさ・SF表現', zh: '夸张·科幻效果' }],
+];
+$('#speedTable').innerHTML = `<thead><tr><th class="num">m/s</th><th class="num">${T({ ja: '近づく', zh: '靠近' }, 1)}</th><th class="num">${T({ ja: '遠ざかる', zh: '远离' }, 1)}</th><th class="num">${T({ ja: '全体の幅', zh: '总幅度' }, 1)}</th><th>${T({ ja: 'たとえ', zh: '例子' }, 1)}</th></tr></thead><tbody>` +
+  sp.map(([v, ex]) => { const up = 12 * Math.log2(C / (C - v)), dn = 12 * Math.log2(C / (C + v)); return `<tr><td class="num">${v}</td><td class="num near">+${up.toFixed(1)}</td><td class="num far">${dn.toFixed(1)}</td><td class="num"><b>${(up - dn).toFixed(1)}</b> st</td><td>${T(ex)}</td></tr>` }).join('') + '</tbody>';
+const prm = [
+  ['Path Type', 'パスの種類', '路径类型', { ja: '直線＝1回通過 / 円形＝周りを回る', zh: '直线＝经过一次 / 圆形＝绕圈' }],
+  ['Starting Distance Away', '開始距離', '起始距离', { ja: '最初どれだけ遠いか。÷速度で通過タイミング', zh: '一开始有多远。÷速度≈经过时刻' }],
+  ['Velocity', '速度', '速度', { ja: '大きいほど音程変化が大きい', zh: '越大音高变化越大' }],
+  ['Coming From', '方向', '方向', { ja: 'どちらから来るか（グラフで確認）', zh: '从哪个方向来（看图确认）' }],
+  ['Passes In Front By', '前方を通過', '前方经过距离', { ja: '小さい＝近い＝急で迫力', zh: '越小＝越近＝越急越有冲击力' }],
+  ['Passes On Right By', '右側を通過', '右侧经过距离', { ja: '通り道を左右にずらす', zh: '把路径左右平移' }],
+  ['Radius', '半径', '半径', { ja: '円の大きさ', zh: '圆的大小' }],
+  ['Starting Angle', '開始角度', '起始角度', { ja: '円のどこから回り始めるか', zh: '从圆上哪个位置开始' }],
+  ['Center In Front By / On Right By', '中心の前方・右側距離', '圆心前方/右侧距离', { ja: '0・0 だと音程が変わらない', zh: '都为0时音高不变' }],
+  ['Adjust Volume Based On…', '距離または方向に基づいてボリュームを調整', '按距离/方向调整音量', { ja: 'オン推奨：遠い＝小さい', zh: '建议开启：远＝小声' }],
+  ['Quality Level', '品質レベル', '品质级别', { ja: '高い＝きれい・遅い', zh: '越高越干净、越慢' }],
+];
+$('#paramTable').innerHTML = `<thead><tr><th>English UI</th><th>${T({ ja: '日本語（参考）', zh: '日文（参考）' }, 1)}</th><th>${T({ ja: '中文（参考）', zh: '中文（参考）' }, 1)}</th><th>${T({ ja: '役割', zh: '作用' }, 1)}</th></tr></thead><tbody>` +
+  prm.map(r => `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td style="font-family:var(--f-zh)">${r[2]}</td><td>${T(r[3])}</td></tr>`).join('') + '</tbody>';
+const rec = [
+  [{ ja: '鳥', zh: '鸟' }, '直線', '100 m', '25 m/s', '270°', '4 m', '01_birds_doppler', { ja: '頭上をかすめて飛ぶ鳥', zh: '掠过头顶的鸟' }],
+  [{ ja: '風', zh: '风' }, '直線', '150 m', '30 m/s', '270°', '2 m', '02_wind_doppler', { ja: '突風が横切る', zh: '一阵风横扫而过' }],
+  [{ ja: '蜂（直線）', zh: '蜂（直线）' }, '直線', '160 m', '40 m/s', '270°', '5 m', '03_bee_doppler', { ja: '★最初の練習', zh: '★首次练习' }],
+  [{ ja: '蜂（円形）', zh: '蜂（圆形）' }, '円形', { ja: '半径 6 m', zh: '半径 6 m' }, '20 m/s', { ja: '開始角度 270°', zh: '開始角度 270°' }, { ja: '前側中心位置 8 m', zh: '前側中心位置 8 m' }, '03_bee_circle', { ja: '周りを飛び回る', zh: '绕着飞' }],
+  [{ ja: '虫', zh: '虫' }, '直線', '240 m', '60 m/s', '270°', '3 m', '04_cricket_doppler', { ja: 'スペクトル表示で見やすい', zh: '在频谱里看得很清楚' }],
+  [{ ja: '宇宙ハム', zh: '宇宙嗡鸣' }, '直線', '320 m', '80 m/s', '270°', '8 m', '05_hum_doppler', { ja: 'UFO が飛び去る', zh: 'UFO 飞走' }],
+  [{ ja: '環境音', zh: '环境音' }, { ja: 'かけない', zh: '不加' }, { ja: 'なし', zh: '无' }, { ja: 'なし', zh: '无' }, { ja: 'なし', zh: '无' }, { ja: 'なし', zh: '无' }, { ja: '保存しない', zh: '不保存' }, { ja: '背景は動かさない', zh: '背景保持不动' }],
+];
+const cell = (v) => typeof v === 'string' ? v : T(v);
+$('#recTable').innerHTML = `<thead><tr><th>${T({ ja: '素材', zh: '素材' }, 1)}</th><th>パスタイプ</th><th class="num">開始距離</th><th class="num">速度</th><th class="num">進入角度</th><th class="num">前側通過位置</th><th>${T({ ja: '保存する名前', zh: '保存名' }, 1)}</th><th>${T({ ja: 'イメージ', zh: '效果' }, 1)}</th></tr></thead><tbody>` +
+  rec.map(r => `<tr><td>${cell(r[0])}</td><td>${cell(r[1])}</td><td class="num">${cell(r[2])}</td><td class="num">${cell(r[3])}</td><td class="num">${cell(r[4])}</td><td class="num">${cell(r[5])}</td><td class="mono">${cell(r[6])}</td><td>${cell(r[7])}</td></tr>`).join('') + '</tbody>';
+})();
+</script>
+
+</body></html>
